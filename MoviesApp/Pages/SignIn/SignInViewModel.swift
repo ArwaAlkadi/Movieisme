@@ -14,6 +14,8 @@ class SignInViewModel: ObservableObject {
     @Published var password: String = ""
     @Published var isPasswordVisible: Bool = false
     @Published var showError: Bool = false
+    @Published var emailError: Bool = false  
+    @Published var passwordError: Bool = false
     
     var isSignInButtonEnabled: Bool {
         get {

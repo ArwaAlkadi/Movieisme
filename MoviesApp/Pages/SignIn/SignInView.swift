@@ -60,9 +60,10 @@ struct SignInView: View {
                     CustomTextField(
                         placeholder: "Enter your email",
                         text: $viewModel.email,
-                        isSecure: false,  // جديد: نقول له مو باسورد
-                        isPasswordVisible: .constant(false),  // جديد: مو مهم هنا
-                        onToggleVisibility: nil  // جديد: ما فيه عين للإيميل
+                        isSecure: false,
+                        isPasswordVisible: .constant(false),
+                        onToggleVisibility: nil,
+                        hasError: $viewModel.emailError  // جديد
                     )
                 }
                 .padding(.horizontal, 30)
@@ -75,13 +76,28 @@ struct SignInView: View {
                     CustomTextField(
                         placeholder: "Enter your password",
                         text: $viewModel.password,
-                        isSecure: true,  // جديد: نقول له هذا باسورد
-                        isPasswordVisible: $viewModel.isPasswordVisible,  // جديد: متغير يتحكم بالعين
-                        onToggleVisibility: {  // جديد: لما نضغط العين
+                        isSecure: true,
+                        isPasswordVisible: $viewModel.isPasswordVisible,
+                        onToggleVisibility: {
                             viewModel.togglePasswordVisibility()
-                        }
-                    )
+                        },
+                        hasError: $viewModel.passwordError  // جديد
+                    )             }
+                .padding(.horizontal, 30)
+                
+                // زر Sign In - جديد!
+                Button(action: {
+                    viewModel.signIn()
+                }) {
+                    Text("Sign in")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(viewModel.isSignInButtonEnabled ? .black : Color(red: 0.5, green: 0.5, blue: 0.5))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 56)
+                        .background(viewModel.isSignInButtonEnabled ? Color("MainColor1") : Color("Dark4"))
+                        .cornerRadius(10)
                 }
+                .disabled(!viewModel.isSignInButtonEnabled)
                 .padding(.horizontal, 30)
 
                 Spacer()            }
@@ -96,26 +112,30 @@ struct CustomTextField: View {
     var isSecure: Bool = false
     @Binding var isPasswordVisible: Bool
     var onToggleVisibility: (() -> Void)?
+    @Binding var hasError: Bool  // جديد: عشان نعرف فيه خطأ
+    
+    @FocusState private var isFocused: Bool  // جديد: عشان نعرف الحقل مضغوط
     
     var body: some View {
         HStack {
             ZStack(alignment: .leading) {
-                // الـ placeholder (يظهر لما الحقل فاضي)
                 if text.isEmpty {
                     Text(placeholder)
-                        .foregroundColor(Color(red: 0.7, green: 0.7, blue: 0.7)) // لون فاتح #B3B3B3
+                        .foregroundColor(Color(red: 0.7, green: 0.7, blue: 0.7))
                 }
                 
-                // الحقل نفسه
                 Group {
                     if isSecure && !isPasswordVisible {
                         SecureField("", text: $text)
+                            .focused($isFocused)  // جديد
                     } else {
                         TextField("", text: $text)
+                            .focused($isFocused)  // جديد
                     }
                 }
                 .foregroundColor(.white)
                 .autocapitalization(.none)
+                .accentColor(Color("MainColor1"))  // جديد: لون الكيرسر (الخط)
             }
             
             if isSecure {
@@ -131,6 +151,21 @@ struct CustomTextField: View {
         .padding()
         .background(Color("Dark3"))
         .cornerRadius(10)
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(borderColor, lineWidth: 2)  // جديد: البوردر
+        )
+    }
+    
+    // جديد: دالة تحدد لون البوردر
+    private var borderColor: Color {
+        if hasError {
+            return Color("Error")  // أحمر لو فيه خطأ
+        } else if isFocused {
+            return Color("MainColor1")  // أصفر لو مضغوط
+        } else {
+            return Color.clear  // شفاف لو عادي
+        }
     }
 }
 #Preview {
