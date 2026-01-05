@@ -1,11 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Scheme
+<<<<<<< HEAD
    LastUpgradeVersion = "2620"
+=======
+   LastUpgradeVersion = "2610"
+>>>>>>> main
    version = "1.7">
    <BuildAction
       parallelizeBuildables = "YES"
       buildImplicitDependencies = "YES"
+<<<<<<< HEAD
       buildArchitectures = "All">
+=======
+      buildArchitectures = "Automatic">
+>>>>>>> main
       <BuildActionEntries>
          <BuildActionEntry
             buildForTesting = "YES"
@@ -34,6 +42,10 @@
       buildConfiguration = "Debug"
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
+<<<<<<< HEAD
+=======
+      language = "ar"
+>>>>>>> main
       launchStyle = "0"
       useCustomWorkingDirectory = "NO"
       ignoresPersistentStateOnLaunch = "NO"
@@ -50,10 +62,13 @@
             ReferencedContainer = "container:MoviesApp.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
+<<<<<<< HEAD
       <LocationScenarioReference
          identifier = "com.apple.dt.IDEFoundation.CurrentLocationScenarioIdentifier"
          referenceType = "1">
       </LocationScenarioReference>
+=======
+>>>>>>> main
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Release"
