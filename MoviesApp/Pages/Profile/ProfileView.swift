@@ -55,26 +55,16 @@ struct ProfileView: View {
         }
     }
 
-    func binding(for record: profilerecord) -> Binding<AirtableRecordR<Profile>> {
+    func binding(for record: ProfileDTO) -> Binding<ProfileDTO> {
         Binding {
-            AirtableRecordR(
-                id: record.id,
-                createdTime: record.createdTime,
-                fields: record.fields
-            )
+            record
         } set: { updated in
-            api.updateProfile(
-                profilerecord(
-                    id: updated.id,
-                    createdTime: updated.createdTime,
-                    fields: updated.fields
-                )
-            )
+            api.updateProfile(updated)
         }
     }
 
     @ViewBuilder
-    func profileCard(record: profilerecord) -> some View {
+    func profileCard(record: ProfileDTO) -> some View {
         NavigationLink {
             EditProfileView(profile: binding(for: record))
         } label: {

@@ -173,6 +173,8 @@ final class MovieDetailsViewModel: ObservableObject {
     @Published var directors: [DirectorsDTO] = []
     @Published var usersByID: [String: UserDTO] = [:]
 
+    @Published var isFavorite = false
+    @Published var isAddingToFavorites = false
     @Published var isLoading = false
     @Published var errorMessage: String?
 

@@ -10,10 +10,13 @@ import SwiftUI
 struct MoviesCenterView: View {
 
     @StateObject var vm = MoviesCenterViewModel()
-
+    @StateObject var vm1 = MovieDetailsViewModel()
+    
     @State private var selectedHero = 0
     @State private var searchText = ""
 
+    let currentUserID = "recXYus6Hnq6ApTiu"
+    
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
@@ -23,23 +26,8 @@ struct MoviesCenterView: View {
 
                     
                     
-                    // ----------------------------------------
-                    // Header
-                    // ----------------------------------------
-                    HStack {
-                        Text("Movies Center")
-                            .font(.title2)
-                            .bold()
-                            .foregroundStyle(.white)
-
-                        Spacer()
-
-                        Circle()
-                            .frame(width: 41, height: 41)
-                            .foregroundStyle(.dark2)
-                    }
-                    .padding(.top, 8)
-
+                    
+                    header
                     searchBar
 
                     if vm.isLoading {
@@ -125,7 +113,10 @@ struct MoviesCenterView: View {
         }
         .navigationBarBackButtonHidden(true)
         // تاسك يعني أول ما تشتغل الصفحة حمل البيانات من السيرفر
-        .task { await vm.fetchMovies() }
+        .task {
+            await vm.fetchMovies()
+            await vm1.fetchUsers(userIDs: [currentUserID])
+        }
 
         .alert("Error", isPresented: Binding(
             get: { vm.errorMessage != nil },
@@ -140,6 +131,73 @@ struct MoviesCenterView: View {
         
 
 
+    // ----------------------------------------
+    // Var for Header
+    // ----------------------------------------
+       private var header: some View {
+           HStack {
+               Text("Movies Center")
+                   .font(.title2)
+                   .bold()
+                   .foregroundStyle(.white)
+
+               Spacer()
+
+               if let user = vm1.usersByID[currentUserID] {
+                   
+                   Group {
+                       if let imageURL = user.fields.profile_image,
+                          let url = URL(string: imageURL),
+                          !imageURL.isEmpty {
+                           
+                           AsyncImage(url: url) { phase in
+                               switch phase {
+                               case .success(let image):
+                                   image.resizable().scaledToFill()
+                               default:
+                                   Circle()
+                                       .fill(Color.dark2)
+                                       .overlay {
+                                           Text(user.fields.name.prefix(1))
+                                               .foregroundColor(.white)
+                                               .font(.headline)
+                                               .bold()
+                                       }
+                               }
+                           }
+                           
+                       } else {
+                           Circle()
+                               .fill(Color.dark2)
+                               .overlay {
+                                   Text(user.fields.name.prefix(1))
+                                       .foregroundColor(.white)
+                                       .font(.headline)
+                                       .bold()
+                               }
+                       }
+                   }
+                   .frame(width: 41, height: 41)
+                   .clipShape(Circle())
+                   
+               } else if vm1.isLoading {
+                   Circle()
+                       .fill(Color.dark2)
+                       .frame(width: 41, height: 41)
+                       .overlay {
+                           ProgressView()
+                               .tint(.white)
+                               .scaleEffect(0.7)
+                       }
+               } else {
+                   Circle()
+                       .fill(Color.dark2)
+                       .frame(width: 41, height: 41)
+               }
+           }
+           .padding(.top, 8)
+       }
+       
 
     // ----------------------------------------
     // Var for SearchBar

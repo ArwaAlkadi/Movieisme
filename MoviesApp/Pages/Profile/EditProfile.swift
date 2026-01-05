@@ -6,17 +6,18 @@
 //
 
 import SwiftUI
+
 struct EditProfileView: View {
-    @Binding var profile: AirtableRecordR<Profile>   // <--- الربط مع ViewModel
+    @Binding var profile: ProfileDTO   // <--- الربط مع ViewModel
     
     @Environment(\.dismiss) private var dismiss
     @State private var isEditing = false
     
     // نسخة مؤقتة لتعديل الحقول بدون التأثير على النسخة الأصلية
-    @State private var tempProfile: Profile
+    @State private var tempProfile: ProfileFields
 
     // تهيئة tempProfile بقيم النسخة الأصلية عند فتح الصفحة
-    init(profile: Binding<AirtableRecordR<Profile>>) {
+    init(profile: Binding<ProfileDTO>) {
         self._profile = profile
         self._tempProfile = State(initialValue: profile.wrappedValue.fields)
     }
@@ -146,7 +147,7 @@ struct EditProfileView: View {
                         // فقط عند الضغط على Save، نحدث النسخة الأصلية ونرسل التحديث للـ API
                         profile.fields = tempProfile
                         Task {
-                            await APIServices().saveProfileToAPI(profilerecord(
+                            await APIServices().saveProfileToAPI(ProfileDTO(
                                 id: profile.id,
                                 createdTime: profile.createdTime,
                                 fields: profile.fields
@@ -160,6 +161,7 @@ struct EditProfileView: View {
         }
     }
 }
+
 #Preview {
     ProfileView()
         .preferredColorScheme(.dark)

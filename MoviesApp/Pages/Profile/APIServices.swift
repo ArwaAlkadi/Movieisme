@@ -11,7 +11,7 @@ import Combine
 @MainActor
 final class APIServices: ObservableObject {
     
-    @Published var profiles: [profilerecord] = []
+    @Published var profiles: [ProfileDTO] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
     
@@ -19,11 +19,13 @@ final class APIServices: ObservableObject {
     private let token = "Bearer patHXtgI1qrXTZwz3.a455bfcc1a171662a512c7890954a8f4335f00601ea5d14d425baa3baa2d53c0"
     
     
-    func updateProfile(_ updatedProfile: profilerecord) {
+    func updateProfile(_ updatedProfile: ProfileDTO) {
         if let index = profiles.firstIndex(where: { $0.id == updatedProfile.id }) {
             profiles[index] = updatedProfile
         }
     }
+    
+    
     func fetchProfiles() async {
         isLoading = true
         errorMessage = nil
@@ -47,10 +49,10 @@ final class APIServices: ObservableObject {
             }
             
             let decoder = JSONDecoder()
-            let result = try decoder.decode(AirtableListResponseR<Profile>.self, from: data)
+            let result = try decoder.decode(AirtableListResponse<ProfileFields>.self, from: data)
             
             profiles = result.records.map {
-                profilerecord(id: $0.id, createdTime: $0.createdTime, fields: $0.fields)
+                ProfileDTO(id: $0.id, createdTime: $0.createdTime, fields: $0.fields)
             }
             
         } catch {
@@ -59,16 +61,18 @@ final class APIServices: ObservableObject {
         }
     }
     
-    func getProfile(by id: String) -> profilerecord? {
+    func getProfile(by id: String) -> ProfileDTO? {
         return profiles.first { $0.id == id }
     }
     
-    func getProfileByEmail(_ email: String) -> profilerecord? {
+    func getProfileByEmail(_ email: String) -> ProfileDTO? {
         return profiles.first { $0.fields.email == email }
     }
 }
+
+
 extension APIServices {
-    func saveProfileToAPI(_ profile: profilerecord) async {
+    func saveProfileToAPI(_ profile: ProfileDTO) async {
         guard let url = URL(string: "\(baseURL)/\(profile.id)") else { return }
 
         var request = URLRequest(url: url)
@@ -77,15 +81,16 @@ extension APIServices {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
         // نرسل الحقول فقط
-        let body = ["fields": [
-            "name": profile.fields.name,
-            "password": profile.fields.password,
-            "email": profile.fields.email,
-            "profile_image": profile.fields.profile_image ?? ""
-        ]]
+        let updateDTO = ProfileUpdateDTO(
+            fields: ProfileUpdateDTO.Fields(
+                name: profile.fields.name,
+                profile_image: profile.fields.profile_image
+            )
+        )
 
         do {
-            request.httpBody = try JSONSerialization.data(withJSONObject: body, options: [])
+            let encoder = JSONEncoder()
+            request.httpBody = try encoder.encode(updateDTO)
 
             let (_, response) = try await URLSession.shared.data(for: request)
 
