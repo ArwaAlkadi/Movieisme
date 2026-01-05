@@ -12,9 +12,7 @@ struct MoviesApp: App {
     var body: some Scene {
         WindowGroup {
             ProfileView()
-            NavigationStack {
-                MoviesCenterView()
-            }
+           
         }
     }
 }

@@ -67,3 +67,39 @@ final class APIServices: ObservableObject {
         return profiles.first { $0.fields.email == email }
     }
 }
+extension APIServices {
+    func saveProfileToAPI(_ profile: profilerecord) async {
+        guard let url = URL(string: "\(baseURL)/\(profile.id)") else { return }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "PATCH"
+        request.setValue(token, forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        // نرسل الحقول فقط
+        let body = ["fields": [
+            "name": profile.fields.name,
+            "password": profile.fields.password,
+            "email": profile.fields.email,
+            "profile_image": profile.fields.profile_image ?? ""
+        ]]
+
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: body, options: [])
+
+            let (_, response) = try await URLSession.shared.data(for: request)
+
+            guard let httpResponse = response as? HTTPURLResponse,
+                  (200...299).contains(httpResponse.statusCode) else {
+                print("Failed to update profile. Status code not OK")
+                return
+            }
+
+            // تحديث النسخة المحلية بعد نجاح API
+            updateProfile(profile)
+
+        } catch {
+            print("Error updating profile to Airtable:", error)
+        }
+    }
+}
