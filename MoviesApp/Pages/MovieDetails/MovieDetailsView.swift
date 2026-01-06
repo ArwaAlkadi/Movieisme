@@ -203,11 +203,8 @@ struct MovieDetailsView: View {
         }
     }
 
-    
-    
-    
         
-    // MARK: - Poster
+    // Poster
     private var moviePoster: some View {
         ZStack {
             AsyncImage(url: URL(string: movie.fields.poster)) { phase in
@@ -231,10 +228,7 @@ struct MovieDetailsView: View {
     }
 
     
-    
-    
-    
-    // MARK: - Info Grid
+    // Info Grid
     private var infoGrid: some View {
         HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: 12) {
@@ -252,10 +246,7 @@ struct MovieDetailsView: View {
     }
 
     
-    
-    
-    
-    // MARK: - Add Review Button
+    // Add Review Button
     private var bottomButton: some View {
         NavigationLink {
             AddReviewView(
@@ -286,9 +277,6 @@ struct MovieDetailsView: View {
         .padding(.vertical, 10)
         .background(Color.black.opacity(0.9))
     }
-
-    
-    
     
     
     // MARK: - Helpers UI
@@ -479,7 +467,8 @@ struct AddReviewView: View {
 
     @State private var reviewText: String = ""
     @State private var rating: Int = 5
-
+    @State private var showEmptyReviewAlert = false
+    
     init(movieID: String, api: APIServices, currentUserID: String, onDone: @escaping () -> Void) {
         self.movieID = movieID
         self.api = api
@@ -558,8 +547,19 @@ struct AddReviewView: View {
 
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
+                        let trimmed = reviewText.trimmingCharacters(in: .whitespacesAndNewlines)
+
+                        if trimmed.isEmpty {
+                            showEmptyReviewAlert = true
+                            return
+                        }
+                        
                         Task {
-                            let ok = await vm.addReview(movieID: movieID, text: reviewText, rate: rating)
+                            let ok = await vm.addReview(
+                                movieID: movieID,
+                                text: trimmed,
+                                rate: rating
+                            )
                             if ok {
                                 onDone()
                                 dismiss()
@@ -570,12 +570,16 @@ struct AddReviewView: View {
                             .foregroundColor(.mainColor1)
                             .bold()
                     }
-                    .disabled(reviewText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
                 .sharedBackgroundVisibility(.hidden)
             }
         }
         .navigationBarBackButtonHidden(true)
+        .alert("Review Required", isPresented: $showEmptyReviewAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("Please write a review before submitting.")
+        }
         .alert("Error", isPresented: Binding(
             get: { vm.errorMessage != nil },
             set: { if !$0 { vm.errorMessage = nil } }
