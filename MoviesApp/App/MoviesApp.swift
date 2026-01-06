@@ -2,7 +2,6 @@
 //  MoviesApp.swift
 //  MoviesApp
 //
-//  Created by Arwa Alkadi on 24/12/2025.
 //
 
 import SwiftUI
@@ -12,7 +11,7 @@ struct MoviesApp: App {
     var body: some Scene {
         WindowGroup {
             NavigationStack {
-                MoviesCenterView()
+                SignInView()
             }
         }
     }

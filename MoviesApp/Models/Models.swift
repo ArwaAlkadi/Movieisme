@@ -2,7 +2,6 @@
 //  Models.swift
 //  MoviesApp
 //
-//  Created by Arwa Alkadi on 24/12/2025.
 //
 
 import Foundation
@@ -23,7 +22,7 @@ struct AirtableRecord<T: Codable>: Codable, Identifiable {
 
 // MARK: - اروى
 
-// Movies
+/// Movies
 struct MovieFields: Codable {
     let name: String
     let poster: String
@@ -43,7 +42,7 @@ struct MovieDTO: Identifiable {
 
 
 
-// Reviews
+/// Reviews
 struct ReviewFields: Codable {
     let rate: Int
     let review_text: String
@@ -57,19 +56,19 @@ struct ReviewDTO: Identifiable {
     let fields: ReviewFields
 }
 
-struct ReviewCreateDTO: Codable {
-    struct Fields: Codable {
+struct ReviewCreateDTO: Encodable {
+    let fields: Fields
+
+    struct Fields: Encodable {
         let review_text: String
         let rate: Int
         let movie_id: String
         let user_id: String
     }
-    let fields: Fields
 }
 
 
-
-//  Actors
+///  Actors
 struct ActorsFields: Codable {
     let name: String
     let image: String?
@@ -83,7 +82,7 @@ struct ActorsDTO: Identifiable {
 
 
 
-//  Directors
+///  Directors
 struct DirectorsFields: Codable {
     let name: String
     let image: String?
@@ -97,7 +96,7 @@ struct DirectorsDTO: Identifiable {
 
 
 
-// Users
+/// Users
 struct UserFields: Codable {
     let name: String
     let profile_image: String?
@@ -111,7 +110,7 @@ struct UserDTO: Identifiable {
 
 
 
-// Movie Actors (Link Table)
+/// Movie Actors (Link Table)
 struct MovieActorFields: Codable {
     let movie_id: String
     let actor_id: String
@@ -125,7 +124,7 @@ struct MovieActorDTO: Identifiable {
 
 
 
-// Movie Directors (Link Table)
+/// Movie Directors (Link Table)
 struct MovieDirectorFields: Codable {
     let movie_id: String
     let director_id: String
@@ -141,7 +140,7 @@ struct MovieDirectorDTO: Identifiable {
 
 // MARK: -  ريما
 
-// Profile (Users Table)
+/// Profile (Users Table)
 struct ProfileFields: Codable {
     var name: String
     let password: String
@@ -155,7 +154,7 @@ struct ProfileDTO: Identifiable {
     var fields: ProfileFields
 }
 
-// Favorites Read
+/// Favorites Read
 struct FavoriteFields: Codable {
     let user_id: String
     let movie_id: [String]
@@ -167,7 +166,7 @@ struct FavoriteDTO: Identifiable {
     let fields: FavoriteFields
 }
 
-// Helpers
+/// Helpers
 extension ProfileFields {
     var firstName: String {
         name.split(separator: " ").first.map(String.init) ?? name

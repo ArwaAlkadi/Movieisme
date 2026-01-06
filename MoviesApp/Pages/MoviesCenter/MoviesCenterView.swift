@@ -2,21 +2,26 @@
 //  MoviesCenterView.swift
 //  MoviesApp
 //
-//  Created by Arwa Alkadi on 24/12/2025.
 //
 
 import SwiftUI
 
 struct MoviesCenterView: View {
 
-    @StateObject var vm = MoviesCenterViewModel()
-    @StateObject var vm1 = MovieDetailsViewModel()
-    
+    @StateObject private var api: APIServices
+    @StateObject private var vm: MoviesCenterViewModel
+
     @State private var selectedHero = 0
     @State private var searchText = ""
 
-    let currentUserID = "recXYus6Hnq6ApTiu"
-    
+    let currentUserID: String
+
+    init(api: APIServices, currentUserID: String) {
+        _api = StateObject(wrappedValue: api)
+        _vm  = StateObject(wrappedValue: MoviesCenterViewModel(api: api))
+        self.currentUserID = currentUserID
+    }
+
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
@@ -24,17 +29,15 @@ struct MoviesCenterView: View {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 18) {
 
-                    
-                    
-                    
                     header
                     searchBar
 
                     if vm.isLoading {
-                            ProgressView()
-                                .padding()
-                                .scaleEffect(1.5)
-                                .tint(.mainColor1)
+                        ProgressView()
+                            .padding()
+                            .scaleEffect(1.5)
+                            .tint(.mainColor1)
+
                     } else {
 
                         Text("High Rated")
@@ -42,11 +45,6 @@ struct MoviesCenterView: View {
                             .bold()
                             .foregroundStyle(.white)
 
-
-
-                        // ----------------------------------------
-                        // Top Movies
-                        // ----------------------------------------
                         VStack(spacing: 10) {
 
                             TabView(selection: $selectedHero) {
@@ -61,7 +59,11 @@ struct MoviesCenterView: View {
                                 ) { idx, movie in
 
                                     NavigationLink {
-                                        MovieDetailsView(movie: movie)
+                                        MovieDetailsView(
+                                            movie: movie,
+                                            api: api,
+                                            currentUserID: currentUserID
+                                        )
                                     } label: {
                                         TopMovieCard(movie: movie)
                                     }
@@ -72,23 +74,17 @@ struct MoviesCenterView: View {
                             .frame(width: 350, height: 446)
                             .tabViewStyle(.page(indexDisplayMode: .never))
 
-
-
-                            // ----------------------------------------
-                            //  نقاط التمرير
-                            // ----------------------------------------
                             HStack(spacing: 6) {
-                                ForEach(
-                                    0..<max(
-                                        Array(
-                                            vm.filteredMovies(search: searchText)
-                                                .sorted { $0.fields.IMDb_rating > $1.fields.IMDb_rating }
-                                                .prefix(5)
-                                        ).count,
-                                        1
-                                    ),
-                                    id: \.self
-                                ) { i in
+                                let count = max(
+                                    Array(
+                                        vm.filteredMovies(search: searchText)
+                                            .sorted { $0.fields.IMDb_rating > $1.fields.IMDb_rating }
+                                            .prefix(5)
+                                    ).count,
+                                    1
+                                )
+
+                                ForEach(0..<count, id: \.self) { i in
                                     Circle()
                                         .frame(width: 6, height: 6)
                                         .foregroundStyle(.white.opacity(i == selectedHero ? 0.95 : 0.25))
@@ -96,13 +92,7 @@ struct MoviesCenterView: View {
                             }
                         }
 
-
-
-                        // ----------------------------------------
-                        // The Rest Of The Movies
-                        // ----------------------------------------
                         categorySection(title: "Drama", items: vm.movies(forGenre: "Drama"))
-
                         categorySection(title: "Comedy", items: vm.movies(forGenre: "Comedy"))
                     }
                 }
@@ -112,12 +102,19 @@ struct MoviesCenterView: View {
             }
         }
         .navigationBarBackButtonHidden(true)
-        // تاسك يعني أول ما تشتغل الصفحة حمل البيانات من السيرفر
         .task {
+            /// ✅ تحميل الأفلام عن طريق VM
             await vm.fetchMovies()
-            await vm1.fetchUsers(userIDs: [currentUserID])
-        }
 
+            /// ✅ تحميل البروفايلات من نفس api (عشان avatar)
+            do {
+                try await api.fetchProfiles()
+            } catch {
+                /// ما نخرب شاشة الأفلام لو فشل البروفايل
+                /// بس نقدر نعرضه في alert (نربطه بـ vm)
+                vm.errorMessage = error.localizedDescription
+            }
+        }
         .alert("Error", isPresented: Binding(
             get: { vm.errorMessage != nil },
             set: { if !$0 { vm.errorMessage = nil } }
@@ -127,81 +124,95 @@ struct MoviesCenterView: View {
             Text(vm.errorMessage ?? "")
         }
     }
-        
-        
 
+    
+    
+    
+    
+    //  MARK: - Header
+    private var header: some View {
+        HStack {
+            Text("Movies Center")
+                .font(.title2)
+                .bold()
+                .foregroundStyle(.white)
 
-    // ----------------------------------------
-    // Var for Header
-    // ----------------------------------------
-       private var header: some View {
-           HStack {
-               Text("Movies Center")
-                   .font(.title2)
-                   .bold()
-                   .foregroundStyle(.white)
+            Spacer()
 
-               Spacer()
+            NavigationLink {
+                // ✅ توحيد: مرري نفس api
+                ProfileView(userID: currentUserID, api: api)
+            } label: {
 
-               if let user = vm1.usersByID[currentUserID] {
-                   
-                   Group {
-                       if let imageURL = user.fields.profile_image,
-                          let url = URL(string: imageURL),
-                          !imageURL.isEmpty {
-                           
-                           AsyncImage(url: url) { phase in
-                               switch phase {
-                               case .success(let image):
-                                   image.resizable().scaledToFill()
-                               default:
-                                   Circle()
-                                       .fill(Color.dark2)
-                                       .overlay {
-                                           Text(user.fields.name.prefix(1))
-                                               .foregroundColor(.white)
-                                               .font(.headline)
-                                               .bold()
-                                       }
-                               }
-                           }
-                           
-                       } else {
-                           Circle()
-                               .fill(Color.dark2)
-                               .overlay {
-                                   Text(user.fields.name.prefix(1))
-                                       .foregroundColor(.white)
-                                       .font(.headline)
-                                       .bold()
-                               }
-                       }
-                   }
-                   .frame(width: 41, height: 41)
-                   .clipShape(Circle())
-                   
-               } else if vm1.isLoading {
-                   Circle()
-                       .fill(Color.dark2)
-                       .frame(width: 41, height: 41)
-                       .overlay {
-                           ProgressView()
-                               .tint(.white)
-                               .scaleEffect(0.7)
-                       }
-               } else {
-                   Circle()
-                       .fill(Color.dark2)
-                       .frame(width: 41, height: 41)
-               }
-           }
-           .padding(.top, 8)
-       }
-       
+                if let user = api.getProfile(by: currentUserID) {
+                    avatarView(
+                        name: user.fields.name,
+                        imageURL: user.fields.profile_image
+                    )
 
-    // ----------------------------------------
-    // Var for SearchBar
-    // ----------------------------------------
+                } else if vm.isLoading {
+                    Circle()
+                        .fill(Color.dark2)
+                        .frame(width: 41, height: 41)
+                        .overlay {
+                            ProgressView()
+                                .tint(.white)
+                                .scaleEffect(0.7)
+                        }
+
+                } else {
+                    Circle()
+                        .fill(Color.dark2)
+                        .frame(width: 41, height: 41)
+                }
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.top, 8)
+    }
+
+    private func avatarView(name: String, imageURL: String?) -> some View {
+        Group {
+            if let imageURL,
+               let url = URL(string: imageURL),
+               !imageURL.isEmpty {
+
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image.resizable().scaledToFill()
+                    default:
+                        Circle()
+                            .fill(Color.dark2)
+                            .overlay {
+                                Text(name.prefix(1))
+                                    .foregroundColor(.white)
+                                    .font(.headline)
+                                    .bold()
+                            }
+                    }
+                }
+
+            } else {
+                Circle()
+                    .fill(Color.dark2)
+                    .overlay {
+                        Text(name.prefix(1))
+                            .foregroundColor(.white)
+                            .font(.headline)
+                            .bold()
+                    }
+            }
+        }
+        .frame(width: 41, height: 41)
+        .clipShape(Circle())
+    }
+
+    
+    
+    
+    
+    //  MARK: -  SearchBar
     private var searchBar: some View {
         HStack(spacing: 10) {
             Image(systemName: "magnifyingglass")
@@ -226,11 +237,11 @@ struct MoviesCenterView: View {
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
-
-
-    // ----------------------------------------
-    //  Var for CategorySection
-    // ----------------------------------------
+    
+    
+    
+    
+    //  MARK: -  Category Section
     private func categorySection(title: String, items: [MovieDTO]) -> some View {
         VStack(alignment: .leading, spacing: 12) {
 
@@ -251,9 +262,12 @@ struct MoviesCenterView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 14) {
                     ForEach(items.prefix(10)) { movie in
-
                         NavigationLink {
-                            MovieDetailsView(movie: movie)
+                            MovieDetailsView(
+                                movie: movie,
+                                api: api,
+                                currentUserID: currentUserID
+                            )
                         } label: {
                             PosterCard(urlString: movie.fields.poster)
                         }
@@ -271,11 +285,7 @@ struct MoviesCenterView: View {
 
 
 
-
-
-// ----------------------------------------
-// TopMovieCard
-// ----------------------------------------
+// MARK: -  TopMovieCard
 private struct TopMovieCard: View {
 
     let movie: MovieDTO
@@ -300,15 +310,11 @@ private struct TopMovieCard: View {
             }
             .frame(width: 350, height: 434)
 
-
-
             LinearGradient(
                 colors: [Color.clear, Color.black.opacity(0.35), Color.black.opacity(0.95)],
                 startPoint: .top,
                 endPoint: .bottom
             )
-
-
 
             VStack(alignment: .leading, spacing: 6) {
                 Text(movie.fields.name)
@@ -351,11 +357,7 @@ private struct TopMovieCard: View {
 
 
 
-
-
-// ----------------------------------------
-// PosterCard
-// ----------------------------------------
+// MARK: - PosterCard
 private struct PosterCard: View {
 
     let urlString: String
@@ -365,7 +367,6 @@ private struct PosterCard: View {
             switch phase {
             case .success(let img):
                 img.resizable().scaledToFill()
-
             default:
                 Rectangle().fill(.gray.opacity(0.2))
             }
@@ -374,15 +375,4 @@ private struct PosterCard: View {
         .clipped()
         .clipShape(RoundedRectangle(cornerRadius: 16))
     }
-}
-
-
-
-
-
-#Preview {
-    NavigationStack {
-        MoviesCenterView()
-    }
-    
 }

@@ -2,7 +2,6 @@
 //  MovieDetailsView.swift
 //  MoviesApp
 //
-//  Created by Arwa Alkadi on 24/12/2025.
 //
 
 import SwiftUI
@@ -11,8 +10,31 @@ import SwiftUI
 struct MovieDetailsView: View {
 
     let movie: MovieDTO
-    @Environment(\.dismiss) var dismiss
-    @StateObject var vm = MovieDetailsViewModel()
+    @ObservedObject var api: APIServices
+    let currentUserID: String
+
+    @Environment(\.dismiss) private var dismiss
+    @StateObject private var vm: MovieDetailsViewModel
+
+    init(movie: MovieDTO, api: APIServices, currentUserID: String) {
+        self.movie = movie
+        self.api = api
+        self.currentUserID = currentUserID
+        _vm = StateObject(wrappedValue: MovieDetailsViewModel(api: api, currentUserID: currentUserID))
+    }
+
+    /// Read from unified cache
+    private var reviews: [ReviewDTO] {
+        api.reviewsByMovieID[movie.id] ?? []
+    }
+
+    private var actors: [ActorsDTO] {
+        api.actorsByMovieID[movie.id] ?? []
+    }
+
+    private var directors: [DirectorsDTO] {
+        api.directorsByMovieID[movie.id] ?? []
+    }
 
     var body: some View {
         ZStack {
@@ -20,26 +42,17 @@ struct MovieDetailsView: View {
 
             ScrollView(.vertical, showsIndicators: false) {
 
-                // ----------------------------------------
-                // Poster
-                // ----------------------------------------
                 moviePoster
 
-                // ----------------------------------------
-                // Content
-                // ----------------------------------------
                 VStack(alignment: .leading, spacing: 18) {
 
-                    // Title
                     Text(movie.fields.name)
                         .font(.largeTitle)
                         .fontWeight(.bold)
                         .foregroundStyle(.white)
 
-                    // Info grid
                     infoGrid
 
-                    // Story
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Story")
                             .font(.headline)
@@ -52,7 +65,6 @@ struct MovieDetailsView: View {
                             .lineSpacing(4)
                     }
 
-                    // IMDb Rating
                     VStack(alignment: .leading, spacing: 6) {
                         sectionTitle("IMDb Rating")
                         Text("\(String(format: "%.1f", movie.fields.IMDb_rating)) / 10")
@@ -65,35 +77,23 @@ struct MovieDetailsView: View {
                         .frame(height: 1)
                         .overlay(Color.white.opacity(0.12))
 
-                   
-                    // ----------------------------------------
                     // Director
-                    // ----------------------------------------
                     sectionTitle("Director")
-
-                    if vm.directors.isEmpty {
-                        HStack(spacing: 12) {
-                            starMini(name: "-", imageURL: nil)
-                            Spacer()
-                        }
+                    if directors.isEmpty {
+                        HStack(spacing: 12) { starMini(name: "-", imageURL: nil); Spacer() }
                     } else {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 18) {
-                                ForEach(vm.directors) { d in
+                                ForEach(directors) { d in
                                     starMini(name: d.fields.name, imageURL: d.fields.image)
                                 }
                             }
                         }
                     }
-                    
-                    // ----------------------------------------
-                    // Stars
-                    // ----------------------------------------
+
+                    /// Stars
                     sectionTitle("Stars")
-
-                   
-
-                    if vm.actors.isEmpty {
+                    if actors.isEmpty {
                         HStack(spacing: 18) {
                             starMini(name: "-", imageURL: nil)
                             starMini(name: "-", imageURL: nil)
@@ -102,7 +102,7 @@ struct MovieDetailsView: View {
                     } else {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 18) {
-                                ForEach(vm.actors) { a in
+                                ForEach(actors) { a in
                                     starMini(name: a.fields.name, imageURL: a.fields.image)
                                 }
                             }
@@ -113,9 +113,7 @@ struct MovieDetailsView: View {
                         .frame(height: 1)
                         .overlay(Color.white.opacity(0.12))
 
-                    // ----------------------------------------
-                    // Reviews
-                    // ----------------------------------------
+                    /// Reviews
                     VStack(alignment: .leading, spacing: 10) {
 
                         sectionTitle("Rating & Reviews")
@@ -125,27 +123,24 @@ struct MovieDetailsView: View {
                                 .padding()
                                 .scaleEffect(1.5)
                                 .tint(.mainColor1)
-
                         } else {
 
-                            if vm.reviews.isEmpty {
+                            if reviews.isEmpty {
                                 Text("No reviews yet")
                                     .foregroundStyle(.dark4)
                                     .padding(.vertical, 10)
-
                             } else {
                                 ScrollView(.horizontal, showsIndicators: false) {
                                     HStack(spacing: 14) {
-                                        ForEach(vm.reviews) { r in
-
+                                        ForEach(reviews) { r in
                                             reviewCard(
-                                                userName: vm.userName(for: r.fields.user_id),
-                                                userImageURL: vm.userImage(for: r.fields.user_id),
+                                                userName: api.userName(for: r.fields.user_id),
+                                                userImageURL: api.userImageURL(for: r.fields.user_id),
                                                 text: r.fields.review_text,
                                                 day: r.createdTime,
                                                 rating: r.fields.rate,
                                                 onDelete: {
-                                                    Task { _ = await vm.deleteReview(reviewID: r.id) }
+                                                    Task { await vm.deleteReview(movieID: movie.id, reviewID: r.id) }
                                                 }
                                             )
                                         }
@@ -170,9 +165,7 @@ struct MovieDetailsView: View {
         .toolbar {
 
             ToolbarItem(placement: .topBarLeading) {
-                Button { dismiss() } label: {
-                    circleIcon("chevron.left")
-                }
+                Button { dismiss() } label: { circleIcon("chevron.left") }
             }
             .sharedBackgroundVisibility(.hidden)
 
@@ -188,7 +181,7 @@ struct MovieDetailsView: View {
                     }
 
                     Button {
-                       //باقي
+                        /// TODO
                     } label: {
                         circleIcon("bookmark")
                     }
@@ -198,9 +191,7 @@ struct MovieDetailsView: View {
         }
         .toolbarColorScheme(.dark, for: .navigationBar)
         .task {
-            await vm.fetchReviews(movieID: movie.id) // ✅ يجلب الريفيو + اليوزرز تلقائياً
-            await vm.fetchActors(movieID: movie.id)
-            await vm.fetchDirectors(movieID: movie.id)  
+            await vm.load(movieID: movie.id)
         }
         .alert("Error", isPresented: Binding(
             get: { vm.errorMessage != nil },
@@ -212,12 +203,12 @@ struct MovieDetailsView: View {
         }
     }
 
-
-
-    // ----------------------------------------
-    // Movie Poster
-    // ----------------------------------------
-    var moviePoster: some View {
+    
+    
+    
+        
+    // MARK: - Poster
+    private var moviePoster: some View {
         ZStack {
             AsyncImage(url: URL(string: movie.fields.poster)) { phase in
                 switch phase {
@@ -239,13 +230,13 @@ struct MovieDetailsView: View {
         .clipShape(RoundedRectangle(cornerRadius: 10))
     }
 
-
-    // ----------------------------------------
-    // Info Grid
-    // ----------------------------------------
-    var infoGrid: some View {
+    
+    
+    
+    
+    // MARK: - Info Grid
+    private var infoGrid: some View {
         HStack(alignment: .top) {
-
             VStack(alignment: .leading, spacing: 12) {
                 infoItem("Duration", movie.fields.runtime)
                 infoItem("Genre", movie.fields.genre.joined(separator: ", "))
@@ -260,14 +251,19 @@ struct MovieDetailsView: View {
         }
     }
 
-
-    // ----------------------------------------
-    // Add Review Button
-    // ----------------------------------------
-    var bottomButton: some View {
+    
+    
+    
+    
+    // MARK: - Add Review Button
+    private var bottomButton: some View {
         NavigationLink {
-            AddReviewView(movieID: movie.id) {
-                Task { await vm.fetchReviews(movieID: movie.id) }
+            AddReviewView(
+                movieID: movie.id,
+                api: api,
+                currentUserID: currentUserID
+            ) {
+                Task { await vm.refreshReviews(movieID: movie.id) }
             }
         } label: {
             HStack(spacing: 8) {
@@ -291,19 +287,19 @@ struct MovieDetailsView: View {
         .background(Color.black.opacity(0.9))
     }
 
-
-    // ----------------------------------------
-    // Helpers
-    // ----------------------------------------
-    func initials(from name: String) -> String {
+    
+    
+    
+    
+    // MARK: - Helpers UI
+    private func initials(from name: String) -> String {
         let parts = name.split(separator: " ")
         let first = parts.first?.first.map(String.init) ?? ""
         let last  = parts.dropFirst().first?.first.map(String.init) ?? ""
         return (first + last).uppercased()
     }
 
-    // صورة + fallback (initials)
-    func starMini(name: String, imageURL: String?) -> some View {
+    private func starMini(name: String, imageURL: String?) -> some View {
         VStack(spacing: 8) {
 
             ZStack {
@@ -341,14 +337,15 @@ struct MovieDetailsView: View {
                 .frame(width: 90)
         }
     }
-    func sectionTitle(_ text: String) -> some View {
+
+    private func sectionTitle(_ text: String) -> some View {
         Text(text)
             .font(.headline)
             .fontWeight(.bold)
             .foregroundStyle(.white)
     }
 
-    func infoItem(_ title: String, _ value: String) -> some View {
+    private func infoItem(_ title: String, _ value: String) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title)
                 .font(.subheadline)
@@ -361,7 +358,7 @@ struct MovieDetailsView: View {
         }
     }
 
-    func circleIcon(_ name: String) -> some View {
+    private func circleIcon(_ name: String) -> some View {
         Image(systemName: name)
             .font(.system(size: 16, weight: .semibold))
             .foregroundStyle(.mainColor1)
@@ -370,28 +367,7 @@ struct MovieDetailsView: View {
             .clipShape(Circle())
     }
 
-    func avatar(_ initials: String) -> some View {
-        Text(initials)
-            .font(.headline)
-            .fontWeight(.bold)
-            .foregroundStyle(.white)
-            .frame(width: 76, height: 76)
-            .background(Color.white.opacity(0.12))
-            .clipShape(Circle())
-    }
-
-    func starMini(_ name: String, _ initials: String) -> some View {
-        VStack(spacing: 8) {
-            avatar(initials)
-
-            Text(name)
-                .font(.caption)
-                .fontWeight(.semibold)
-                .foregroundStyle(.dark4)
-        }
-    }
-
-    func starsRow(_ rating: Int) -> some View {
+    private func starsRow(_ rating: Int) -> some View {
         HStack(spacing: 4) {
             ForEach(1...5, id: \.self) { i in
                 Image(systemName: i <= rating ? "star.fill" : "star")
@@ -402,19 +378,17 @@ struct MovieDetailsView: View {
         }
     }
 
-    func dateOnly(_ isoString: String) -> String {
+    private func dateOnly(_ isoString: String) -> String {
         let iso = ISO8601DateFormatter()
         iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-
         guard let date = iso.date(from: isoString) else { return isoString }
 
         let f = DateFormatter()
-        f.dateFormat = "yyyy-MM-dd"   // تقدرين تغيرينها: "dd/MM/yyyy"
+        f.dateFormat = "yyyy-MM-dd"
         return f.string(from: date)
     }
-    
-    // ✅ Review Card with user image + name
-    func reviewCard(
+
+    private func reviewCard(
         userName: String,
         userImageURL: String?,
         text: String,
@@ -427,9 +401,10 @@ struct MovieDetailsView: View {
 
             HStack(spacing: 10) {
 
-                // User Image
                 Group {
-                    if let urlString = userImageURL, let url = URL(string: urlString) {
+                    if let urlString = userImageURL,
+                       let url = URL(string: urlString),
+                       !urlString.isEmpty {
                         AsyncImage(url: url) { phase in
                             switch phase {
                             case .success(let img):
@@ -491,21 +466,27 @@ struct MovieDetailsView: View {
 
 
 
-
-
-
-
 // MARK: - AddReviewView
 struct AddReviewView: View {
 
     let movieID: String
+    @ObservedObject var api: APIServices
+    let currentUserID: String
     let onDone: () -> Void
 
-    @Environment(\.dismiss) var dismiss
-    @StateObject var vm = MovieDetailsViewModel()
+    @Environment(\.dismiss) private var dismiss
+    @StateObject private var vm: MovieDetailsViewModel
 
-    @State var reviewText: String = ""
-    @State var rating: Int = 5
+    @State private var reviewText: String = ""
+    @State private var rating: Int = 5
+
+    init(movieID: String, api: APIServices, currentUserID: String, onDone: @escaping () -> Void) {
+        self.movieID = movieID
+        self.api = api
+        self.currentUserID = currentUserID
+        self.onDone = onDone
+        _vm = StateObject(wrappedValue: MovieDetailsViewModel(api: api, currentUserID: currentUserID))
+    }
 
     var body: some View {
         ZStack {
@@ -523,7 +504,6 @@ struct AddReviewView: View {
                     }
                     .padding(.top, 10)
 
-                    // TextEditor (Gray Box without border)
                     TextEditor(text: $reviewText)
                         .scrollContentBackground(.hidden)
                         .foregroundStyle(.white)
@@ -535,7 +515,6 @@ struct AddReviewView: View {
                         )
                         .padding(.horizontal, 18)
 
-                    // Rating
                     HStack {
                         Text("Rating")
                             .font(.body)
@@ -580,14 +559,7 @@ struct AddReviewView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         Task {
-                            let text = reviewText.trimmingCharacters(in: .whitespacesAndNewlines)
-
-                            let ok = await vm.createReview(
-                                movieID: movieID,
-                                text: text,
-                                rate: rating
-                            )
-
+                            let ok = await vm.addReview(movieID: movieID, text: reviewText, rate: rating)
                             if ok {
                                 onDone()
                                 dismiss()
@@ -612,38 +584,5 @@ struct AddReviewView: View {
         } message: {
             Text(vm.errorMessage ?? "")
         }
-    }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-// MARK: - Preview
-#Preview {
-    NavigationStack {
-        MovieDetailsView(
-            movie: MovieDTO(
-                id: "recfNj1e4waOUJLxd",
-                createdTime: "2025-01-06T08:55:18.000Z",
-                fields: MovieFields(
-                    name: "The Shawshank Redemption",
-                    poster: "https://i.pinimg.com/736x/c6/7e/87/c67e879868febbf0941a6cdde645f179.jpg",
-                    story: "Chronicles the experiences of a formerly successful banker as a prisoner in the gloomy jailhouse of Shawshank.",
-                    runtime: "2h 22m",
-                    genre: ["Drama"],
-                    rating: "R",
-                    IMDb_rating: 9.3,
-                    language: ["English"]
-                )
-            )
-        )
     }
 }

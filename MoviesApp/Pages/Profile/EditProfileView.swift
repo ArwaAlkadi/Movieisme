@@ -1,41 +1,40 @@
 //
-//  EditProfile.swift
+//   EditProfileView.swift
 //  MoviesApp
 //
-//  Created by Reema Alsaleh  on 12/07/1447 AH.
 //
 
 import SwiftUI
 
 struct EditProfileView: View {
-    @Binding var profile: ProfileDTO   // <--- الربط مع ViewModel
-    
+
+    @ObservedObject var vm: ProfileViewModel
+    @Binding var profile: ProfileDTO
+
     @Environment(\.dismiss) private var dismiss
     @State private var isEditing = false
-    
-    // نسخة مؤقتة لتعديل الحقول بدون التأثير على النسخة الأصلية
+
     @State private var tempProfile: ProfileFields
 
-    // تهيئة tempProfile بقيم النسخة الأصلية عند فتح الصفحة
-    init(profile: Binding<ProfileDTO>) {
+    init(vm: ProfileViewModel, profile: Binding<ProfileDTO>) {
+        self.vm = vm
         self._profile = profile
         self._tempProfile = State(initialValue: profile.wrappedValue.fields)
     }
-    
+
     var body: some View {
         VStack(spacing: 30) {
-            
-            // Avatar
+
+            // MARK: -  Avatar
             ZStack {
                 if let urlString = tempProfile.profile_image,
                    let url = URL(string: urlString),
                    !urlString.isEmpty {
+
                     AsyncImage(url: url) { phase in
                         switch phase {
                         case .success(let image):
-                            image
-                                .resizable()
-                                .scaledToFill()
+                            image.resizable().scaledToFill()
                         default:
                             Image(systemName: "person.fill")
                                 .foregroundColor(.white)
@@ -43,6 +42,7 @@ struct EditProfileView: View {
                     }
                     .frame(width: 80, height: 80)
                     .clipShape(Circle())
+
                 } else {
                     Image(systemName: "person.fill")
                         .resizable()
@@ -64,15 +64,15 @@ struct EditProfileView: View {
                 }
             }
             .padding(.top, 20)
-            
-            // الحقول (Names Section)
+
+            // MARK: -  Fields
             VStack(spacing: 0) {
-                // First Name Row
+
                 HStack {
                     Text("First Name")
                         .foregroundColor(.white)
                         .frame(width: 100, alignment: .leading)
-                    
+
                     TextField("", text: Binding(
                         get: { tempProfile.firstName },
                         set: { newFirst in
@@ -83,16 +83,15 @@ struct EditProfileView: View {
                     .disabled(!isEditing)
                 }
                 .padding()
-                
+
                 Divider().background(Color.dark3.opacity(0.3))
-                    .padding(.horizontal,15)
-                
-                // Last Name Row
+                    .padding(.horizontal, 15)
+
                 HStack {
                     Text("Last Name")
                         .foregroundColor(.white)
                         .frame(width: 100, alignment: .leading)
-                    
+
                     TextField("", text: Binding(
                         get: { tempProfile.lastName },
                         set: { newLast in
@@ -107,32 +106,32 @@ struct EditProfileView: View {
             .background(Color(white: 0.12))
             .cornerRadius(12)
             .padding(.horizontal, 16)
-            
+
             Spacer()
-            
-            // Sign Out Button
-            Button {
-                print("Sign Out tapped")
-            } label: {
-                Text("Sign Out")
-                    .foregroundColor(.red)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.dark2)
-                    .cornerRadius(12)
-                    .padding(.horizontal, 24)
+
+            if !isEditing {
+                NavigationLink {
+                    SignInView()
+                } label: {
+                    Text("Sign Out")
+                        .foregroundColor(.red)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.dark2)
+                        .cornerRadius(12)
+                        .padding(.horizontal, 24)
+                }
+                .padding(.bottom, 20)
             }
-            .padding(.bottom, 20)
         }
         .background(Color.black.ignoresSafeArea())
         .navigationTitle(isEditing ? "Edit Profile" : "Profile Info")
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(true)
         .toolbar {
+
             ToolbarItem(placement: .navigationBarLeading) {
-                Button {
-                    dismiss()
-                } label: {
+                Button { dismiss() } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "chevron.left")
                         Text("Back")
@@ -144,26 +143,30 @@ struct EditProfileView: View {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button(isEditing ? "Save" : "Edit") {
                     if isEditing {
-                        // فقط عند الضغط على Save، نحدث النسخة الأصلية ونرسل التحديث للـ API
-                        profile.fields = tempProfile
                         Task {
-                            await APIServices().saveProfileToAPI(ProfileDTO(
-                                id: profile.id,
-                                createdTime: profile.createdTime,
-                                fields: profile.fields
-                            ))
+                            profile.fields = tempProfile
+                            await vm.saveProfile(profile)
+                            if vm.errorMessage == nil {
+                                isEditing = false
+                                dismiss()
+                            }
                         }
+                    } else {
+                        isEditing = true
                     }
-                    isEditing.toggle()
                 }
                 .foregroundColor(Color("Warning"))
             }
         }
+        .alert("Error", isPresented: Binding(
+            get: { vm.errorMessage != nil },
+            set: { if !$0 { vm.errorMessage = nil } }
+        )) {
+            Button("OK", role: .cancel) { vm.errorMessage = nil }
+        } message: {
+            Text(vm.errorMessage ?? "")
+        }
     }
 }
 
-#Preview {
-    ProfileView()
-        .preferredColorScheme(.dark)
-}
 
