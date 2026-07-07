@@ -16,9 +16,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "ECF38B5E2EFC27D300664696"
-               BuildableName = "MoviesApp.app"
-               BlueprintName = "MoviesApp"
-               ReferencedContainer = "container:MoviesApp.xcodeproj">
+               BuildableName = "Movieisme.app"
+               BlueprintName = "Movieisme"
+               ReferencedContainer = "container:Movieisme.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -45,9 +45,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "ECF38B5E2EFC27D300664696"
-            BuildableName = "MoviesApp.app"
-            BlueprintName = "MoviesApp"
-            ReferencedContainer = "container:MoviesApp.xcodeproj">
+            BuildableName = "Movieisme.app"
+            BlueprintName = "Movieisme"
+            ReferencedContainer = "container:Movieisme.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -62,9 +62,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "ECF38B5E2EFC27D300664696"
-            BuildableName = "MoviesApp.app"
-            BlueprintName = "MoviesApp"
-            ReferencedContainer = "container:MoviesApp.xcodeproj">
+            BuildableName = "Movieisme.app"
+            BlueprintName = "Movieisme"
+            ReferencedContainer = "container:Movieisme.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>
