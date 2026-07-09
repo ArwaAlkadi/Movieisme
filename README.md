@@ -33,17 +33,6 @@ Reviews, actors, and directors are fetched on demand for the selected movie rath
 
 MVVM with one shared networking service:
 
-```
-Movieisme
-├── App/             # Entry + RootView
-├── Models/          # Generic AirtableRecord/ListResponse wrappers
-│                    # + DTOs: Movie, Review, Actor, Director, Profile
-├── NetWorking/      # APIServices — request builder, validation,
-│                    # and all CRUD calls
-└── Pages/           # SignIn, MoviesCenter, MovieDetails,
-                     # Profile / EditProfile (View + ViewModel each)
-```
-
 A small but useful detail: Airtable responses share one shape, so the app decodes everything through generic `AirtableListResponse<T>` / `AirtableRecord<T>` wrappers — adding a new table means adding one `Fields` struct, not new parsing code.
 
 ## Tech Stack
