@@ -31,9 +31,8 @@ Reviews, actors, and directors are fetched on demand for the selected movie rath
 
 ## Architecture
 
-MVVM with one shared networking service:
+MVVM with one shared networking service.
 
-A small but useful detail: Airtable responses share one shape, so the app decodes everything through generic `AirtableListResponse<T>` / `AirtableRecord<T>` wrappers — adding a new table means adding one `Fields` struct, not new parsing code.
 
 ## Tech Stack
 
