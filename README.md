@@ -1,43 +1,123 @@
 # Movieisme
 
-**Explore movies. Share what you think.**
+**Discover movies. Save favorites. Share your reviews.**
 
-Movieisme is a SwiftUI iOS app for browsing movies, viewing their details, and reading and writing reviews — backed entirely by the **Airtable REST API** with full CRUD support and a clean MVVM structure.
+Movieisme is a movie discovery and review iOS app that allows users to browse movies, explore detailed information, save favorites, and share reviews. The application is powered by the **Airtable REST API** and follows a clean **MVVM architecture** with a reusable networking layer.
 
 <br>
-<img width="1441" height="802" alt="Screenshot 2026-07-09 at 4 45 45 AM" src="https://github.com/user-attachments/assets/4981449d-d17e-4b56-9a28-13b9dcb5c925" />
+<img width="1441" alt="Movieisme" src="https://github.com/user-attachments/assets/4981449d-d17e-4b56-9a28-13b9dcb5c925" />
 <br>
 
 ## Features
 
-- **Movie catalog** — browse movies with posters, story, runtime, genre, language, and IMDb rating
-- **Search & genre filtering** — find movies by name or browse by genre section
-- **Movie details** — cast and directors resolved dynamically through Airtable link tables
-- **Reviews** — read reviews per movie, write your own with a rating, and delete your own reviews
-- **User profiles** — sign in with email/password validation, view and edit your profile (name and photo)
+- **Movie catalog** — browse movies with posters, story, runtime, genre, language, and IMDb rating.
+- **Search & Genre Filtering** — quickly find movies by title or browse by genre.
+- **Movie Details** — dynamically loads actors and directors through Airtable link tables.
+- **Reviews** — read reviews, publish your own with a rating, and delete your own reviews.
+- **Favorites** — save and remove favorite movies with synchronized user data.
+- **User Profiles** — sign in, manage your profile information, and update your profile image.
 
-## CRUD Over Airtable
+---
 
-All networking is centralized in a single `APIServices` layer with a generic request builder, response validation, and typed DTOs decoded from Airtable's record format:
+## Technical Overview
 
-| Operation | Endpoint | Used for |
-|---|---|---|
-| **Create** | `POST /reviews` | Publishing a new movie review |
-| **Read** | `GET /movies`, `/reviews`, `/actors`, `/directors`, `/users` | Catalog, per-movie reviews, cast via link tables, profiles |
-| **Update** | `PATCH /users/{id}` | Editing profile name and image |
-| **Delete** | `DELETE /reviews/{id}` | Removing the user's own review |
+Built a native iOS application using **SwiftUI** with an **MVVM architecture**, integrating the Airtable REST API through a reusable networking layer built with **URLSession**, **async/await**, **JSON decoding**, and **generics**.
 
-Reviews, actors, and directors are fetched on demand for the selected movie rather than up front, and profile edits are applied locally as well so the UI updates instantly.
+The networking layer includes:
+
+- Centralized API communication
+- Generic request builder
+- HTTP response validation
+- Full CRUD operations
+- Dynamic data loading
+- Session-aware state management
+- Optimistic UI updates
+- Typed DTO decoding
+
+---
+
+## Project Structure
+
+```text
+App
+├── App
+├── Core
+├── Models
+├── Networking
+├── Pages
+│   ├── SignIn
+│   │   ├── View
+│   │   └── ViewModel
+│   ├── MoviesCenter
+│   │   ├── View
+│   │   └── ViewModel
+│   ├── MovieDetails
+│   │   ├── View
+│   │   └── ViewModel
+│   └── Profile
+│       ├── ProfileView
+│       ├── EditProfileView
+│       └── ViewModel
+└── Assets
+```
+
+---
+
+## CRUD Operations
+
+All API communication is centralized inside a reusable `APIServices` layer.
+
+| Operation | Endpoint | Purpose |
+|-----------|----------|---------|
+| **Create** | `POST /reviews` | Publish movie reviews |
+| **Read** | `GET /movies`, `/reviews`, `/actors`, `/directors`, `/users`, `/favorites` | Load movies, reviews, cast, profiles, and favorites |
+| **Update** | `PATCH /users/{id}`<br>`PATCH /favorites/{id}` | Update user profiles and favorite movies |
+| **Delete** | `DELETE /reviews/{id}` | Delete user reviews |
+
+Movies are loaded once, while reviews, actors, directors, and favorites are fetched dynamically as needed to reduce unnecessary network traffic.
+
+---
 
 ## Architecture
 
-MVVM with one shared networking service.
+MVVM with a centralized networking layer.
 
+- **APIServices** — reusable networking service responsible for all Airtable communication.
+- **MovieDetailsViewModel** — handles movie details, reviews, and user interactions.
+- **SessionManager** — manages authentication state and user session.
+- **DTO Models** — strongly typed models for decoding Airtable responses.
+
+---
 
 ## Tech Stack
 
-- Swift · SwiftUI
-- Airtable REST API (async/await networking with `URLSession`)
-- MVVM architecture
+| Layer | Technology |
+|--------|------------|
+| **Language / UI** | Swift · SwiftUI |
+| **Architecture** | MVVM |
+| **Networking** | URLSession · Async/Await |
+| **Backend** | Airtable REST API |
+| **Data** | JSON Encoding & Decoding |
+| **State Management** | ObservableObject · @Published |
+| **Version Control** | Git · GitHub |
 
-> Built as a learning project — it uses a demo Airtable base with an embedded token for easy setup; a production app would keep credentials out of source control.
+---
+
+## Setup
+
+The project requires a local `Secrets.plist` file containing your Airtable credentials.
+
+Create:
+
+```text
+Movieisme/Core/Secrets.plist
+```
+
+with the following keys:
+
+```text
+AirtableBaseID
+AirtableToken
+```
+
+The file is intentionally excluded from Git using `.gitignore` to keep credentials out of source control.
