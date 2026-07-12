@@ -2,10 +2,11 @@
 //  RootView.swift
 //  MoviesApp
 //
-//
 
 import SwiftUI
 
+/// Decides which screen to show based on the session state:
+/// signed-in or guest users go to the main app, otherwise Sign In.
 struct RootView: View {
 
     @EnvironmentObject private var api: APIServices

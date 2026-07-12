@@ -2,7 +2,6 @@
 //  MovieDetailsViewModel.swift
 //  MoviesApp
 //
-//
 
 import Foundation
 import SwiftUI
@@ -20,6 +19,7 @@ final class MovieDetailsViewModel: ObservableObject {
         self.api = api
     }
 
+    /// Loads reviews, actors, and directors in parallel.
     func load(movieID: String) async {
         isLoading = true
         errorMessage = nil
@@ -47,7 +47,8 @@ final class MovieDetailsViewModel: ObservableObject {
         }
     }
 
-    /// ✅ الـ userID صار يُمرّر عند الاستدعاء (من الجلسة) بدل تخزينه
+    /// The user ID comes from the session at call time instead of
+    /// being stored, so the view model stays session-agnostic.
     func addReview(movieID: String, text: String, rate: Int, userID: String) async -> Bool {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, !userID.isEmpty else { return false }

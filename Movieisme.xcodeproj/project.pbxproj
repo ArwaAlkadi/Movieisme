@@ -114,8 +114,8 @@
 		ECEB0C573003EA9D00B6B413 /* Profile */ = {
 			isa = PBXGroup;
 			children = (
-				ECEB0C543003EA9D00B6B413 /* EditProfileView.swift */,
 				ECEB0C553003EA9D00B6B413 /* ProfileView.swift */,
+				ECEB0C543003EA9D00B6B413 /* EditProfileView.swift */,
 				ECEB0C563003EA9D00B6B413 /* ProfileViewModel.swift */,
 			);
 			path = Profile;

@@ -1,7 +1,6 @@
 //
-//  APIService.swift
+//  APIServices.swift
 //  MoviesApp
-//
 //
 
 import Foundation
@@ -23,8 +22,10 @@ final class APIServices: ObservableObject {
     @Published var usersByID: [String: UserDTO] = [:]
     @Published var errorMessage: String?
 
+    /// Movie IDs saved by the current user.
     @Published var favoriteMovieIDs: Set<String> = []
 
+    /// The user's favorites record in Airtable (one record per user).
     private var favoriteRecordID: String?
 
 
@@ -33,6 +34,7 @@ final class APIServices: ObservableObject {
     // MARK: - API Configuration
     // ========================================
 
+    // Credentials are loaded from Secrets.plist (not hardcoded).
     private var baseURL: String {
         "https://api.airtable.com/v0/\(Secrets.airtableBaseID)"
     }
@@ -46,7 +48,7 @@ final class APIServices: ObservableObject {
     // MARK: - Network: Request Builder
     // ========================================
 
-    /// Builds URLRequest with headers and optional body
+    /// Builds a URLRequest with auth headers and an optional JSON body.
     private func request(
         _ path: String,
         method: String = "GET",
@@ -84,7 +86,7 @@ final class APIServices: ObservableObject {
         let error: Err
     }
 
-    /// Validates HTTP response status and throws error if request failed
+    /// Throws a readable error when the HTTP status is not 2xx.
     private func validateWithBody(
         _ response: URLResponse,
         data: Data
@@ -125,7 +127,7 @@ final class APIServices: ObservableObject {
     // MARK: - Network: Movies
     // ========================================
 
-    /// Fetches all movies from Airtable
+    /// Fetches all movies from Airtable.
     func fetchMovies() async throws {
         errorMessage = nil
 
@@ -156,7 +158,7 @@ final class APIServices: ObservableObject {
     // MARK: - Network: Profiles
     // ========================================
 
-    /// Fetches all user profiles from Airtable
+    /// Fetches all user profiles from Airtable.
     func fetchProfiles() async throws {
         errorMessage = nil
 
@@ -181,7 +183,7 @@ final class APIServices: ObservableObject {
         }
     }
 
-    /// Fetches users once for review cards (cached)
+    /// Fetches users once and caches them (used by review cards).
     func fetchUsersIfNeeded() async throws {
         if !usersByID.isEmpty { return }
         errorMessage = nil
@@ -211,7 +213,7 @@ final class APIServices: ObservableObject {
         }
     }
 
-    /// Updates profile to Airtable (PATCH request)
+    /// Saves profile changes to Airtable (PATCH).
     func saveProfileToAPI(_ profile: ProfileDTO) async throws {
         errorMessage = nil
 
@@ -235,6 +237,7 @@ final class APIServices: ObservableObject {
 
             updateProfileLocal(profile)
 
+            // Keep the cached user in sync so review cards show fresh data.
             if usersByID[profile.id] != nil {
                 usersByID[profile.id] = UserDTO(
                     id: profile.id,
@@ -257,6 +260,7 @@ final class APIServices: ObservableObject {
     // MARK: - Network: Reviews
     // ========================================
 
+    /// Fetches all reviews for a movie, newest first.
     func fetchReviews(movieID: String) async throws {
         errorMessage = nil
 
@@ -271,6 +275,7 @@ final class APIServices: ObservableObject {
             let decoded = try JSONDecoder()
                 .decode(AirtableListResponse<ReviewFields>.self, from: data)
 
+            // ISO8601 strings sort correctly as plain strings.
             reviewsByMovieID[movieID] = decoded.records
                 .map {
                     ReviewDTO(
@@ -288,7 +293,7 @@ final class APIServices: ObservableObject {
         }
     }
 
-    /// Creates a new review (POST request)
+    /// Creates a new review (POST) then refreshes the list.
     func createReview(
         movieID: String,
         text: String,
@@ -321,7 +326,7 @@ final class APIServices: ObservableObject {
         }
     }
 
-    /// Deletes a review (DELETE request)
+    /// Deletes a review (DELETE) then refreshes the list.
     func deleteReview(
         reviewID: String,
         movieID: String
@@ -344,9 +349,11 @@ final class APIServices: ObservableObject {
 
 
     // ========================================
-    // MARK: - Network: Favorite
+    // MARK: - Network: Favorites
     // ========================================
 
+    /// Loads the user's favorites record (one record per user
+    /// containing an array of movie IDs).
     func fetchFavorites(userID: String) async throws {
         errorMessage = nil
 
@@ -374,6 +381,8 @@ final class APIServices: ObservableObject {
         }
     }
 
+    /// Adds or removes a movie from favorites.
+    /// Updates the UI optimistically and rolls back on failure.
     func toggleFavorite(movieID: String, userID: String) async throws {
         errorMessage = nil
 
@@ -388,6 +397,7 @@ final class APIServices: ObservableObject {
 
         do {
             if let recordID = favoriteRecordID {
+                // Existing record: PATCH the movie ID array.
                 let dto = FavoriteUpdateDTO(fields: .init(movie_id: Array(newIDs)))
                 let body = try JSONEncoder().encode(dto)
                 let req = try request("favorites/\(recordID)", method: "PATCH", body: body)
@@ -396,6 +406,7 @@ final class APIServices: ObservableObject {
                 try validateWithBody(resp, data: data)
 
             } else {
+                // First favorite: POST a new record and remember its ID.
                 let dto = FavoriteCreateDTO(
                     fields: .init(user_id: userID, movie_id: Array(newIDs))
                 )
@@ -410,6 +421,7 @@ final class APIServices: ObservableObject {
                 favoriteRecordID = created.id
             }
         } catch {
+            // Request failed: restore the previous state.
             favoriteMovieIDs = oldIDs
             errorMessage = error.localizedDescription
             throw error
@@ -420,6 +432,7 @@ final class APIServices: ObservableObject {
         favoriteMovieIDs.contains(movieID)
     }
 
+    /// Called on sign-out to clear user-specific data.
     func clearSessionData() {
         favoriteMovieIDs = []
         favoriteRecordID = nil
@@ -431,7 +444,7 @@ final class APIServices: ObservableObject {
     // MARK: - Network: Actors
     // ========================================
 
-    /// Fetches all actors for a specific movie
+    /// Fetches all actors for a movie via the movie_actors link table.
     func fetchActors(movieID: String) async throws {
         errorMessage = nil
 
@@ -488,7 +501,7 @@ final class APIServices: ObservableObject {
     // MARK: - Network: Directors
     // ========================================
 
-    /// Fetches all directors for a specific movie
+    /// Fetches all directors for a movie via the movie_directors link table.
     func fetchDirectors(movieID: String) async throws {
         errorMessage = nil
 
@@ -550,34 +563,34 @@ final class APIServices: ObservableObject {
     // MARK: - Helpers: Local Operations (No Network)
     // ========================================
 
-    /// Returns profile by ID from local cache
+    /// Returns a profile by ID from the local cache.
     func getProfile(by id: String) -> ProfileDTO? {
         profiles.first { $0.id == id }
     }
 
-    /// Returns profile by email from local cache
+    /// Returns a profile by email from the local cache.
     func getProfileByEmail(_ email: String) -> ProfileDTO? {
         profiles.first { $0.fields.email == email }
     }
 
-    /// Updates profile in local cache only
+    /// Updates a profile in the local cache only.
     func updateProfileLocal(_ updated: ProfileDTO) {
         if let idx = profiles.firstIndex(where: { $0.id == updated.id }) {
             profiles[idx] = updated
         }
     }
 
-    /// Returns user name from local cache or "User" if not found
+    /// Returns a user name from the cache, or "User" if not found.
     func userName(for userID: String) -> String {
         usersByID[userID]?.fields.name ?? "User"
     }
 
-    /// Returns user image URL from local cache
+    /// Returns a user image URL from the cache.
     func userImageURL(for userID: String) -> String? {
         usersByID[userID]?.fields.profile_image
     }
 
-    /// Encodes string for URL query parameters
+    /// Percent-encodes a string for use in URL query parameters.
     private func enc(_ raw: String) -> String {
         raw.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? raw
     }

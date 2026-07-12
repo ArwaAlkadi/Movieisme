@@ -2,7 +2,6 @@
 //  ProfileView.swift
 //  MoviesApp
 //
-//
 
 import SwiftUI
 
@@ -10,6 +9,7 @@ struct ProfileView: View {
 
     let userID: String
 
+    /// Shared app-wide instance passed from the parent view.
     @ObservedObject var api: APIServices
     @StateObject private var vm: ProfileViewModel
 
@@ -29,6 +29,8 @@ struct ProfileView: View {
     }
 
     var body: some View {
+        // No inner NavigationStack: this screen is pushed
+        // inside the app's existing navigation stack.
         ZStack {
             Color.black.ignoresSafeArea()
 
@@ -50,7 +52,7 @@ struct ProfileView: View {
                             .foregroundColor(.white.opacity(0.7))
                     }
 
-                    // MARK: -  Saved Movies
+                    // MARK: - Saved Movies
                     if favoriteMovies.isEmpty {
                         VStack(spacing: 12) {
                             Spacer().frame(height: 60)
@@ -102,6 +104,7 @@ struct ProfileView: View {
         .task {
             await vm.fetchProfiles()
 
+            // Load favorites if the user landed here before they were fetched.
             if api.favoriteMovieIDs.isEmpty {
                 try? await api.fetchFavorites(userID: userID)
             }

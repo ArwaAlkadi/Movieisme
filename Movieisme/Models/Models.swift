@@ -2,12 +2,12 @@
 //  Models.swift
 //  MoviesApp
 //
-//
 
 import Foundation
 
 
-// MARK: - Airtable Generic Response
+// MARK: - Airtable Generic Responses
+
 struct AirtableListResponse<T: Codable>: Codable {
     let records: [AirtableRecord<T>]
 }
@@ -18,6 +18,7 @@ struct AirtableRecord<T: Codable>: Codable, Identifiable {
     let fields: T
 }
 
+/// Single-record response (POST / PATCH return one record, not a list).
 struct AirtableSingleResponse<T: Codable>: Codable {
     let id: String
     let createdTime: String
@@ -26,7 +27,8 @@ struct AirtableSingleResponse<T: Codable>: Codable {
 
 
 
-/// Movies
+// MARK: - Movies
+
 struct MovieFields: Codable {
     let name: String
     let poster: String
@@ -46,7 +48,8 @@ struct MovieDTO: Identifiable {
 
 
 
-/// Reviews
+// MARK: - Reviews
+
 struct ReviewFields: Codable {
     let rate: Int
     let review_text: String
@@ -72,7 +75,9 @@ struct ReviewCreateDTO: Encodable {
 }
 
 
-///  Actors
+
+// MARK: - Actors
+
 struct ActorsFields: Codable {
     let name: String
     let image: String?
@@ -86,7 +91,8 @@ struct ActorsDTO: Identifiable {
 
 
 
-///  Directors
+// MARK: - Directors
+
 struct DirectorsFields: Codable {
     let name: String
     let image: String?
@@ -100,7 +106,8 @@ struct DirectorsDTO: Identifiable {
 
 
 
-/// Users
+// MARK: - Users
+
 struct UserFields: Codable {
     let name: String
     let profile_image: String?
@@ -114,7 +121,8 @@ struct UserDTO: Identifiable {
 
 
 
-/// Movie Actors (Link Table)
+// MARK: - Movie Actors (Link Table)
+
 struct MovieActorFields: Codable {
     let movie_id: String
     let actor_id: String
@@ -128,7 +136,8 @@ struct MovieActorDTO: Identifiable {
 
 
 
-/// Movie Directors (Link Table)
+// MARK: - Movie Directors (Link Table)
+
 struct MovieDirectorFields: Codable {
     let movie_id: String
     let director_id: String
@@ -142,7 +151,8 @@ struct MovieDirectorDTO: Identifiable {
 
 
 
-/// Profile (Users Table)
+// MARK: - Profile (Users Table)
+
 struct ProfileFields: Codable {
     var name: String
     let password: String
@@ -156,40 +166,6 @@ struct ProfileDTO: Identifiable {
     var fields: ProfileFields
 }
 
-
-
-/// Favorites Read
-struct FavoriteFields: Codable {
-    let user_id: String
-    let movie_id: [String]?
-}
-
-struct FavoriteDTO: Identifiable {
-    let id: String
-    let createdTime: String
-    let fields: FavoriteFields
-}
-
-/// Favorites Create (POST)
-struct FavoriteCreateDTO: Encodable {
-    struct Fields: Encodable {
-        let user_id: String
-        let movie_id: [String]
-    }
-    let fields: Fields
-}
-
-/// Favorites Update (PATCH)
-struct FavoriteUpdateDTO: Encodable {
-    struct Fields: Encodable {
-        let movie_id: [String]
-    }
-    let fields: Fields
-}
-
-
-
-/// Helpers
 extension ProfileFields {
     var firstName: String {
         name.split(separator: " ").first.map(String.init) ?? name
@@ -201,12 +177,45 @@ extension ProfileFields {
     }
 }
 
-
-// MARK: - Profile Update DTO (PATCH)
+/// PATCH body for profile updates.
 struct ProfileUpdateDTO: Codable {
     struct Fields: Codable {
         var name: String?
         var profile_image: String?
+    }
+    let fields: Fields
+}
+
+
+
+// MARK: - Favorites
+
+/// One record per user holding an array of saved movie IDs.
+/// `movie_id` is optional because Airtable omits empty fields.
+struct FavoriteFields: Codable {
+    let user_id: String
+    let movie_id: [String]?
+}
+
+struct FavoriteDTO: Identifiable {
+    let id: String
+    let createdTime: String
+    let fields: FavoriteFields
+}
+
+/// POST body for creating the user's favorites record.
+struct FavoriteCreateDTO: Encodable {
+    struct Fields: Encodable {
+        let user_id: String
+        let movie_id: [String]
+    }
+    let fields: Fields
+}
+
+/// PATCH body for updating the saved movie IDs.
+struct FavoriteUpdateDTO: Encodable {
+    struct Fields: Encodable {
+        let movie_id: [String]
     }
     let fields: Fields
 }

@@ -1,7 +1,6 @@
 //
-//   EditProfileView.swift
+//  EditProfileView.swift
 //  MoviesApp
-//
 //
 
 import SwiftUI
@@ -18,6 +17,8 @@ struct EditProfileView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var isEditing = false
+
+    /// Local draft of the profile fields; only committed on Save.
     @State private var tempProfile: ProfileFields
 
     @State private var pickedItem: PhotosPickerItem?
@@ -31,7 +32,7 @@ struct EditProfileView: View {
     var body: some View {
         VStack(spacing: 30) {
 
-            // MARK: -  Avatar
+            // MARK: - Avatar (tappable in edit mode to pick a new photo)
             PhotosPicker(
                 selection: $pickedItem,
                 matching: .images,
@@ -51,7 +52,7 @@ struct EditProfileView: View {
                 }
             }
 
-            // MARK: -  Fields
+            // MARK: - Name Fields
             VStack(spacing: 0) {
 
                 HStack {
@@ -101,9 +102,11 @@ struct EditProfileView: View {
 
             Spacer()
 
+            // MARK: - Sign Out
             if !isEditing {
                 Button {
                     api.clearSessionData()
+                    // RootView returns to the sign-in screen automatically.
                     session.signOut()
                 } label: {
                     Text("Sign Out")
@@ -126,7 +129,7 @@ struct EditProfileView: View {
             ToolbarItem(placement: .navigationBarLeading) {
                 Button {
                     if isEditing {
-                        /// إلغاء التعديل: نرجع القيم الأصلية
+                        // Cancel editing: discard the draft.
                         tempProfile = profile.fields
                         isEditing = false
                     } else {
@@ -171,6 +174,7 @@ struct EditProfileView: View {
 
 
     // MARK: - Avatar View
+
     private var avatar: some View {
         ZStack {
             if let urlString = tempProfile.profile_image,
@@ -212,7 +216,12 @@ struct EditProfileView: View {
     }
 
 
-    
+    // MARK: - Image Processing
+
+    /// Resizes the picked image to max 300px, compresses it as JPEG,
+    /// and returns it as a base64 data URL so it can be stored in
+    /// Airtable's text field and loaded back with AsyncImage.
+    /// Note: the profile_image field in Airtable must be "Long text".
     private static func makeAvatarDataURL(from data: Data) -> String? {
         guard let ui = UIImage(data: data) else { return nil }
 

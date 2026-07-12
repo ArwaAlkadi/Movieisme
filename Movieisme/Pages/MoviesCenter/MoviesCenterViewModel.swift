@@ -2,7 +2,6 @@
 //  MoviesCenterViewModel.swift
 //  MoviesApp
 //
-//
 
 import Foundation
 import SwiftUI
@@ -34,7 +33,8 @@ final class MoviesCenterViewModel: ObservableObject {
         }
     }
 
-    // Helpers
+    // MARK: - Helpers
+
     func filteredMovies(search: String) -> [MovieDTO] {
         let q = search.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !q.isEmpty else { return movies }

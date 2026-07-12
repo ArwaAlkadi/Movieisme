@@ -2,7 +2,7 @@
 //  Secrets.swift
 //  MoviesApp
 //
-//  Loads API secrets from Secrets.plist (NOT committed to git).
+//  Loads API secrets from Secrets.plist (not committed to git).
 //
 
 import Foundation
@@ -16,17 +16,17 @@ enum Secrets {
             let plist = try? PropertyListSerialization
                 .propertyList(from: data, format: nil) as? [String: Any]
         else {
-            fatalError("⚠️ Secrets.plist is missing. Add it to the app target (see Secrets.example.plist).")
+            fatalError("Secrets.plist is missing. Add it to the app target.")
         }
         return plist
     }()
 
-    /// Airtable Personal Access Token (بدون كلمة Bearer)
+    /// Airtable Personal Access Token (without the "Bearer" prefix).
     static var airtableToken: String {
         dict["AIRTABLE_TOKEN"] as? String ?? ""
     }
 
-    /// Airtable Base ID (يبدأ بـ app...)
+    /// Airtable Base ID (starts with "app").
     static var airtableBaseID: String {
         dict["AIRTABLE_BASE_ID"] as? String ?? ""
     }

@@ -2,11 +2,11 @@
 //  MovieDetailsView.swift
 //  MoviesApp
 //
-//
 
 import SwiftUI
 
 // MARK: - MovieDetailsView
+
 struct MovieDetailsView: View {
 
     let movie: MovieDTO
@@ -29,7 +29,8 @@ struct MovieDetailsView: View {
         session.currentUserID
     }
 
-    /// Read from unified cache
+    // Data is read from the shared cache in APIServices.
+
     private var reviews: [ReviewDTO] {
         api.reviewsByMovieID[movie.id] ?? []
     }
@@ -83,7 +84,7 @@ struct MovieDetailsView: View {
                         .frame(height: 1)
                         .overlay(Color.white.opacity(0.12))
 
-                    // Director
+                    // MARK: - Director
                     sectionTitle("Director")
                     if directors.isEmpty {
                         HStack(spacing: 12) { starMini(name: "-", imageURL: nil); Spacer() }
@@ -97,7 +98,7 @@ struct MovieDetailsView: View {
                         }
                     }
 
-                    /// Stars
+                    // MARK: - Stars
                     sectionTitle("Stars")
                     if actors.isEmpty {
                         HStack(spacing: 18) {
@@ -119,7 +120,7 @@ struct MovieDetailsView: View {
                         .frame(height: 1)
                         .overlay(Color.white.opacity(0.12))
 
-                    /// Reviews (✅ تجي مرتبة من الأحدث — الترتيب في APIServices)
+                    // MARK: - Reviews (sorted newest first by APIServices)
                     VStack(alignment: .leading, spacing: 10) {
 
                         sectionTitle("Rating & Reviews")
@@ -187,6 +188,7 @@ struct MovieDetailsView: View {
                         circleIcon("square.and.arrow.up")
                     }
 
+                    // Bookmark toggles the favorite; guests get a sign-in prompt.
                     Button {
                         if let userID = currentUserID {
                             Task {
@@ -235,7 +237,8 @@ struct MovieDetailsView: View {
     }
 
 
-    // Poster
+    // MARK: - Poster
+
     private var moviePoster: some View {
         ZStack {
             AsyncImage(url: URL(string: movie.fields.poster)) { phase in
@@ -259,7 +262,8 @@ struct MovieDetailsView: View {
     }
 
 
-    // Info Grid
+    // MARK: - Info Grid
+
     private var infoGrid: some View {
         HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: 12) {
@@ -277,6 +281,9 @@ struct MovieDetailsView: View {
     }
 
 
+    // MARK: - Write a Review Button
+
+    /// Opens the add-review screen; guests get a sign-in prompt instead.
     private var bottomButton: some View {
         Button {
             if currentUserID != nil {
@@ -307,7 +314,8 @@ struct MovieDetailsView: View {
     }
 
 
-    // MARK: - Helpers UI
+    // MARK: - UI Helpers
+
     private func initials(from name: String) -> String {
         let parts = name.split(separator: " ")
         let first = parts.first?.first.map(String.init) ?? ""
@@ -468,7 +476,7 @@ struct MovieDetailsView: View {
         .background(Color.white.opacity(0.07))
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .contextMenu {
-            /// ✅ المستخدم يحذف ريفيوهاته هو فقط
+            // Users can only delete their own reviews.
             if canDelete {
                 Button(role: .destructive) { onDelete() } label: {
                     Label("Delete", systemImage: "trash")
@@ -482,11 +490,8 @@ struct MovieDetailsView: View {
 
 
 
-
-
-
-
 // MARK: - AddReviewView
+
 struct AddReviewView: View {
 
     let movieID: String

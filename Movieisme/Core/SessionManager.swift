@@ -7,6 +7,8 @@ import Foundation
 import SwiftUI
 import Combine
 
+/// Manages the auth session (signed-in user or guest)
+/// and persists it in UserDefaults across app launches.
 @MainActor
 final class SessionManager: ObservableObject {
 
@@ -24,7 +26,7 @@ final class SessionManager: ObservableObject {
 
     var isSignedIn: Bool { currentUserID != nil }
 
-    /// المستخدم داخل التطبيق (سواء مسجّل أو ضيف)
+    /// True when the user should see the main app (signed in or guest).
     var isInsideApp: Bool { isSignedIn || isGuest }
 
     func signIn(userID: String) {

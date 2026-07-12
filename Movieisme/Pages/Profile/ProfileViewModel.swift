@@ -2,7 +2,6 @@
 //  ProfileViewModel.swift
 //  MoviesApp
 //
-//
 
 import Foundation
 import SwiftUI
@@ -51,6 +50,8 @@ final class ProfileViewModel: ObservableObject {
         }
     }
 
+    /// A two-way binding to a profile record, backed by the shared cache.
+    /// Used by EditProfileView to edit the record in place.
     func binding(for recordID: String) -> Binding<ProfileDTO> {
         Binding(
             get: {

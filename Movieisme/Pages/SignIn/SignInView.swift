@@ -2,7 +2,6 @@
 //  SignInView.swift
 //  MoviesApp
 //
-//
 
 import SwiftUI
 
@@ -21,6 +20,8 @@ struct SignInView: View {
     var body: some View {
         ZStack {
 
+            // Background ignores the keyboard so it never gets squeezed;
+            // the form content scrolls above the keyboard instead.
             background
                 .ignoresSafeArea()
                 .ignoresSafeArea(.keyboard)
@@ -43,7 +44,7 @@ struct SignInView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 15)
 
-                    // MARK: -  Email Field
+                    // MARK: - Email Field
                     VStack(alignment: .leading, spacing: 5) {
                         Text("Email")
                             .foregroundColor(.white)
@@ -80,9 +81,10 @@ struct SignInView: View {
                     .padding(.horizontal, 15)
 
 
-                    // MARK: -  Sign In Button
+                    // MARK: - Sign In Button
                     Button(action: {
                         viewModel.signIn { userID in
+                            // RootView switches screens when the session changes.
                             session.signIn(userID: userID)
                         }
                     }) {
@@ -105,7 +107,7 @@ struct SignInView: View {
                     .disabled(!viewModel.isSignInButtonEnabled)
                     .padding(.horizontal, 15)
 
-                    // MARK: - ✅ زر الدخول كضيف
+                    // MARK: - Continue as Guest Button
                     Button {
                         session.continueAsGuest()
                     } label: {

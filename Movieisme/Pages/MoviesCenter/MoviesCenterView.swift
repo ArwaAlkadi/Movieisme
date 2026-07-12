@@ -2,7 +2,6 @@
 //  MoviesCenterView.swift
 //  MoviesApp
 //
-//
 
 import SwiftUI
 
@@ -10,6 +9,7 @@ struct MoviesCenterView: View {
 
     @EnvironmentObject private var session: SessionManager
 
+    /// Shared app-wide instance injected from RootView.
     @ObservedObject var api: APIServices
     @StateObject private var vm: MoviesCenterViewModel
 
@@ -108,12 +108,15 @@ struct MoviesCenterView: View {
         .task {
             await vm.fetchMovies()
 
+            // Profiles are needed for the header avatar.
+            // A failure here should not break the movies screen.
             do {
                 try await api.fetchProfiles()
             } catch {
                 vm.errorMessage = error.localizedDescription
             }
 
+            // Favorites only exist for signed-in users.
             if session.isSignedIn {
                 try? await api.fetchFavorites(userID: currentUserID)
             }
@@ -136,9 +139,8 @@ struct MoviesCenterView: View {
 
 
 
+    // MARK: - Header
 
-
-    //  MARK: - Header
     private var header: some View {
         HStack {
             Text("Movies Center")
@@ -178,6 +180,7 @@ struct MoviesCenterView: View {
                 .buttonStyle(.plain)
 
             } else {
+                // Guests get a prompt to sign in instead of the profile.
                 Button {
                     showGuestAlert = true
                 } label: {
@@ -234,9 +237,8 @@ struct MoviesCenterView: View {
 
 
 
+    // MARK: - Search Bar
 
-
-    //  MARK: -  SearchBar
     private var searchBar: some View {
         HStack(spacing: 10) {
             Image(systemName: "magnifyingglass")
@@ -263,9 +265,8 @@ struct MoviesCenterView: View {
 
 
 
+    // MARK: - Category Section
 
-
-    //  MARK: -  Category Section
     private func categorySection(title: String, items: [MovieDTO]) -> some View {
         VStack(alignment: .leading, spacing: 12) {
 
@@ -308,7 +309,8 @@ struct MoviesCenterView: View {
 
 
 
-// MARK: -  TopMovieCard
+// MARK: - TopMovieCard
+
 private struct TopMovieCard: View {
 
     let movie: MovieDTO
@@ -381,6 +383,8 @@ private struct TopMovieCard: View {
 
 
 // MARK: - PosterCard
+
+/// Reusable poster thumbnail, also used by the profile's saved movies grid.
 struct PosterCard: View {
 
     let urlString: String

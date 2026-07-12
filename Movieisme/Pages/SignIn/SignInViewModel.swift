@@ -2,7 +2,6 @@
 //  SignInViewModel.swift
 //  MoviesApp
 //
-//
 
 import Foundation
 import SwiftUI
@@ -12,6 +11,7 @@ import Combine
 final class SignInViewModel: ObservableObject {
 
     // MARK: - Published Properties
+
     @Published var email: String = ""
     @Published var password: String = ""
     @Published var isPasswordVisible: Bool = false
@@ -25,8 +25,6 @@ final class SignInViewModel: ObservableObject {
     @Published var showErrorAlert: Bool = false
 
     private let api: APIServices
-
-    //  MARK: -  Profiles from unified cache
 
     var profiles: [ProfileDTO] { api.profiles }
 
@@ -55,14 +53,14 @@ final class SignInViewModel: ObservableObject {
         }
     }
 
+    /// Validates the credentials against the cached profiles.
+    /// Session persistence is handled by SessionManager in the view layer.
     func signIn(onSuccess: @escaping (String) -> Void) {
 
-        /// Reset errors
         emailError = false
         passwordError = false
         errorMessage = nil
 
-        /// Validate email
         guard !email.isEmpty else {
             emailError = true
             errorMessage = "Please enter your email"
@@ -70,7 +68,6 @@ final class SignInViewModel: ObservableObject {
             return
         }
 
-        /// Validate password
         guard !password.isEmpty else {
             passwordError = true
             errorMessage = "Please enter your password"
@@ -78,7 +75,6 @@ final class SignInViewModel: ObservableObject {
             return
         }
 
-        /// Find user by email
         guard let user = api.getProfileByEmail(email) else {
             emailError = true
             errorMessage = "Email not found"
@@ -86,7 +82,6 @@ final class SignInViewModel: ObservableObject {
             return
         }
 
-        /// Check password
         guard user.fields.password == password else {
             passwordError = true
             errorMessage = "Incorrect password"
@@ -94,7 +89,6 @@ final class SignInViewModel: ObservableObject {
             return
         }
 
-        /// Success
         onSuccess(user.id)
     }
 }
