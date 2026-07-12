@@ -7,7 +7,7 @@
 import Foundation
 
 
-// MARK: - Airtable Generic Response مشترك
+// MARK: - Airtable Generic Response
 struct AirtableListResponse<T: Codable>: Codable {
     let records: [AirtableRecord<T>]
 }
@@ -137,8 +137,6 @@ struct MovieDirectorDTO: Identifiable {
 }
 
 
-
-// MARK: -  ريما
 
 /// Profile (Users Table)
 struct ProfileFields: Codable {

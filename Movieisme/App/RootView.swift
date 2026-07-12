@@ -4,8 +4,6 @@
 //
 //
 
-//هذا الملف يحدد أول صفحة تظهر للمستخدم حسب حالة الدخول 
-
 import SwiftUI
 
 struct RootView: View {

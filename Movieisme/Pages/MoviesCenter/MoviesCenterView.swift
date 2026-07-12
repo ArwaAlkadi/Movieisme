@@ -140,7 +140,6 @@ struct MoviesCenterView: View {
             Spacer()
 
             NavigationLink {
-                // ✅ توحيد: مرري نفس api
                 ProfileView(userID: currentUserID, api: api)
             } label: {
 
