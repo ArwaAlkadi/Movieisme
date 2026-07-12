@@ -6,3 +6,9 @@ Movieisme/Core/Secrets.plist
 # Xcode user data
 xcuserdata/
 *.xcuserstate
+
+# macOS
+.DS_Store
+
+# Xcode workspace settings
+*.xcsettings
