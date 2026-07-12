@@ -10,27 +10,29 @@ struct ProfileView: View {
 
     let userID: String
 
-    @StateObject private var api: APIServices
+    @ObservedObject var api: APIServices
     @StateObject private var vm: ProfileViewModel
+
+    private let columns = [
+        GridItem(.flexible(), spacing: 14),
+        GridItem(.flexible(), spacing: 14)
+    ]
 
     init(userID: String, api: APIServices) {
         self.userID = userID
-        _api = StateObject(wrappedValue: api)
-        _vm  = StateObject(wrappedValue: ProfileViewModel(api: api))
+        self.api = api
+        _vm = StateObject(wrappedValue: ProfileViewModel(api: api))
     }
 
-    init(userID: String) {
-        self.userID = userID
-        let api = APIServices()
-        _api = StateObject(wrappedValue: api)
-        _vm  = StateObject(wrappedValue: ProfileViewModel(api: api))
+    private var favoriteMovies: [MovieDTO] {
+        api.movies.filter { api.favoriteMovieIDs.contains($0.id) }
     }
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                Color.black.ignoresSafeArea()
+        ZStack {
+            Color.black.ignoresSafeArea()
 
+            ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 16) {
 
                     if let record = vm.getProfile(by: userID) {
@@ -48,26 +50,61 @@ struct ProfileView: View {
                             .foregroundColor(.white.opacity(0.7))
                     }
 
-                    Spacer()
+                    // MARK: -  Saved Movies
+                    if favoriteMovies.isEmpty {
+                        VStack(spacing: 12) {
+                            Spacer().frame(height: 60)
 
-                    Image("Image")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 90, height: 90)
+                            Image("Image")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 90, height: 90)
 
-                    Text("No saved movies yet, start save your favourites")
-                        .foregroundColor(.dark3)
-                        .font(.footnote)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 24)
+                            Text("No saved movies yet, start save your favourites")
+                                .foregroundColor(.dark3)
+                                .font(.footnote)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 24)
+                        }
 
-                    Spacer()
+                    } else {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Saved Movies")
+                                .font(.headline)
+                                .bold()
+                                .foregroundStyle(.white)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+
+                            LazyVGrid(columns: columns, spacing: 14) {
+                                ForEach(favoriteMovies) { movie in
+                                    NavigationLink {
+                                        MovieDetailsView(movie: movie, api: api)
+                                    } label: {
+                                        PosterCard(
+                                            urlString: movie.fields.poster,
+                                            width: 165,
+                                            height: 240
+                                        )
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 18)
+                    }
+
+                    Spacer(minLength: 30)
                 }
             }
-            .navigationTitle("Profile")
         }
+        .navigationTitle("Profile")
+        .navigationBarTitleDisplayMode(.inline)
         .task {
             await vm.fetchProfiles()
+
+            if api.favoriteMovieIDs.isEmpty {
+                try? await api.fetchFavorites(userID: userID)
+            }
         }
         .alert("Error", isPresented: Binding(
             get: { vm.errorMessage != nil },

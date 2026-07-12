@@ -23,12 +23,11 @@ final class SignInViewModel: ObservableObject {
 
     @Published var errorMessage: String?
     @Published var showErrorAlert: Bool = false
-    @Published var loginSuccess: Bool = false
 
     private let api: APIServices
 
     //  MARK: -  Profiles from unified cache
-    
+
     var profiles: [ProfileDTO] { api.profiles }
 
     var isSignInButtonEnabled: Bool {
@@ -96,23 +95,6 @@ final class SignInViewModel: ObservableObject {
         }
 
         /// Success
-        UserDefaults.standard.currentUserID = user.id
-        loginSuccess = true
         onSuccess(user.id)
-    }
-}
-
-
-
-
-
-extension UserDefaults {
-    var currentUserID: String {
-        get {
-            return string(forKey: "currentUserID") ?? ""
-        }
-        set {
-            set(newValue, forKey: "currentUserID")
-        }
     }
 }

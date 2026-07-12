@@ -8,18 +8,22 @@ import SwiftUI
 
 struct MoviesCenterView: View {
 
-    @StateObject private var api: APIServices
+    @EnvironmentObject private var session: SessionManager
+
+    @ObservedObject var api: APIServices
     @StateObject private var vm: MoviesCenterViewModel
 
     @State private var selectedHero = 0
     @State private var searchText = ""
+    @State private var showGuestAlert = false
 
-    let currentUserID: String
+    init(api: APIServices) {
+        self.api = api
+        _vm = StateObject(wrappedValue: MoviesCenterViewModel(api: api))
+    }
 
-    init(api: APIServices, currentUserID: String) {
-        _api = StateObject(wrappedValue: api)
-        _vm  = StateObject(wrappedValue: MoviesCenterViewModel(api: api))
-        self.currentUserID = currentUserID
+    private var currentUserID: String {
+        session.currentUserID ?? ""
     }
 
     var body: some View {
@@ -61,8 +65,7 @@ struct MoviesCenterView: View {
                                     NavigationLink {
                                         MovieDetailsView(
                                             movie: movie,
-                                            api: api,
-                                            currentUserID: currentUserID
+                                            api: api
                                         )
                                     } label: {
                                         TopMovieCard(movie: movie)
@@ -103,16 +106,16 @@ struct MoviesCenterView: View {
         }
         .navigationBarBackButtonHidden(true)
         .task {
-            /// ✅ تحميل الأفلام عن طريق VM
             await vm.fetchMovies()
 
-            /// ✅ تحميل البروفايلات من نفس api (عشان avatar)
             do {
                 try await api.fetchProfiles()
             } catch {
-                /// ما نخرب شاشة الأفلام لو فشل البروفايل
-                /// بس نقدر نعرضه في alert (نربطه بـ vm)
                 vm.errorMessage = error.localizedDescription
+            }
+
+            if session.isSignedIn {
+                try? await api.fetchFavorites(userID: currentUserID)
             }
         }
         .alert("Error", isPresented: Binding(
@@ -123,12 +126,18 @@ struct MoviesCenterView: View {
         } message: {
             Text(vm.errorMessage ?? "")
         }
+        .alert("Sign in required", isPresented: $showGuestAlert) {
+            Button("Sign in") { session.signOut() }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("Sign in to view your profile and save movies.")
+        }
     }
 
-    
-    
-    
-    
+
+
+
+
     //  MARK: - Header
     private var header: some View {
         HStack {
@@ -139,33 +148,49 @@ struct MoviesCenterView: View {
 
             Spacer()
 
-            NavigationLink {
-                ProfileView(userID: currentUserID, api: api)
-            } label: {
+            if session.isSignedIn {
+                NavigationLink {
+                    ProfileView(userID: currentUserID, api: api)
+                } label: {
 
-                if let user = api.getProfile(by: currentUserID) {
-                    avatarView(
-                        name: user.fields.name,
-                        imageURL: user.fields.profile_image
-                    )
+                    if let user = api.getProfile(by: currentUserID) {
+                        avatarView(
+                            name: user.fields.name,
+                            imageURL: user.fields.profile_image
+                        )
 
-                } else if vm.isLoading {
+                    } else if vm.isLoading {
+                        Circle()
+                            .fill(Color.dark2)
+                            .frame(width: 41, height: 41)
+                            .overlay {
+                                ProgressView()
+                                    .tint(.white)
+                                    .scaleEffect(0.7)
+                            }
+
+                    } else {
+                        Circle()
+                            .fill(Color.dark2)
+                            .frame(width: 41, height: 41)
+                    }
+                }
+                .buttonStyle(.plain)
+
+            } else {
+                Button {
+                    showGuestAlert = true
+                } label: {
                     Circle()
                         .fill(Color.dark2)
                         .frame(width: 41, height: 41)
                         .overlay {
-                            ProgressView()
-                                .tint(.white)
-                                .scaleEffect(0.7)
+                            Image(systemName: "person.fill")
+                                .foregroundStyle(.white.opacity(0.7))
                         }
-
-                } else {
-                    Circle()
-                        .fill(Color.dark2)
-                        .frame(width: 41, height: 41)
                 }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
         }
         .padding(.top, 8)
     }
@@ -207,10 +232,10 @@ struct MoviesCenterView: View {
         .clipShape(Circle())
     }
 
-    
-    
-    
-    
+
+
+
+
     //  MARK: -  SearchBar
     private var searchBar: some View {
         HStack(spacing: 10) {
@@ -236,10 +261,10 @@ struct MoviesCenterView: View {
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
-    
-    
-    
-    
+
+
+
+
     //  MARK: -  Category Section
     private func categorySection(title: String, items: [MovieDTO]) -> some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -264,8 +289,7 @@ struct MoviesCenterView: View {
                         NavigationLink {
                             MovieDetailsView(
                                 movie: movie,
-                                api: api,
-                                currentUserID: currentUserID
+                                api: api
                             )
                         } label: {
                             PosterCard(urlString: movie.fields.poster)
@@ -357,9 +381,11 @@ private struct TopMovieCard: View {
 
 
 // MARK: - PosterCard
-private struct PosterCard: View {
+struct PosterCard: View {
 
     let urlString: String
+    var width: CGFloat = 150
+    var height: CGFloat = 220
 
     var body: some View {
         AsyncImage(url: URL(string: urlString)) { phase in
@@ -370,7 +396,7 @@ private struct PosterCard: View {
                 Rectangle().fill(.gray.opacity(0.2))
             }
         }
-        .frame(width: 150, height: 220)
+        .frame(width: width, height: height)
         .clipped()
         .clipShape(RoundedRectangle(cornerRadius: 16))
     }

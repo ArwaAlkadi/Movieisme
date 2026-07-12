@@ -11,16 +11,22 @@ struct MovieDetailsView: View {
 
     let movie: MovieDTO
     @ObservedObject var api: APIServices
-    let currentUserID: String
 
+    @EnvironmentObject private var session: SessionManager
     @Environment(\.dismiss) private var dismiss
     @StateObject private var vm: MovieDetailsViewModel
 
-    init(movie: MovieDTO, api: APIServices, currentUserID: String) {
+    @State private var showGuestAlert = false
+    @State private var goToAddReview = false
+
+    init(movie: MovieDTO, api: APIServices) {
         self.movie = movie
         self.api = api
-        self.currentUserID = currentUserID
-        _vm = StateObject(wrappedValue: MovieDetailsViewModel(api: api, currentUserID: currentUserID))
+        _vm = StateObject(wrappedValue: MovieDetailsViewModel(api: api))
+    }
+
+    private var currentUserID: String? {
+        session.currentUserID
     }
 
     /// Read from unified cache
@@ -113,7 +119,7 @@ struct MovieDetailsView: View {
                         .frame(height: 1)
                         .overlay(Color.white.opacity(0.12))
 
-                    /// Reviews
+                    /// Reviews (✅ تجي مرتبة من الأحدث — الترتيب في APIServices)
                     VStack(alignment: .leading, spacing: 10) {
 
                         sectionTitle("Rating & Reviews")
@@ -139,6 +145,7 @@ struct MovieDetailsView: View {
                                                 text: r.fields.review_text,
                                                 day: r.createdTime,
                                                 rating: r.fields.rate,
+                                                canDelete: r.fields.user_id == currentUserID,
                                                 onDelete: {
                                                     Task { await vm.deleteReview(movieID: movie.id, reviewID: r.id) }
                                                 }
@@ -181,9 +188,18 @@ struct MovieDetailsView: View {
                     }
 
                     Button {
-                        /// TODO
+                        if let userID = currentUserID {
+                            Task {
+                                try? await api.toggleFavorite(
+                                    movieID: movie.id,
+                                    userID: userID
+                                )
+                            }
+                        } else {
+                            showGuestAlert = true
+                        }
                     } label: {
-                        circleIcon("bookmark")
+                        circleIcon(api.isFavorite(movie.id) ? "bookmark.fill" : "bookmark")
                     }
                 }
             }
@@ -192,6 +208,21 @@ struct MovieDetailsView: View {
         .toolbarColorScheme(.dark, for: .navigationBar)
         .task {
             await vm.load(movieID: movie.id)
+        }
+        .navigationDestination(isPresented: $goToAddReview) {
+            AddReviewView(
+                movieID: movie.id,
+                api: api,
+                currentUserID: currentUserID ?? ""
+            ) {
+                Task { await vm.refreshReviews(movieID: movie.id) }
+            }
+        }
+        .alert("Sign in required", isPresented: $showGuestAlert) {
+            Button("Sign in") { session.signOut() }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("Sign in to save movies and write reviews.")
         }
         .alert("Error", isPresented: Binding(
             get: { vm.errorMessage != nil },
@@ -203,7 +234,7 @@ struct MovieDetailsView: View {
         }
     }
 
-        
+
     // Poster
     private var moviePoster: some View {
         ZStack {
@@ -227,7 +258,7 @@ struct MovieDetailsView: View {
         .clipShape(RoundedRectangle(cornerRadius: 10))
     }
 
-    
+
     // Info Grid
     private var infoGrid: some View {
         HStack(alignment: .top) {
@@ -245,16 +276,13 @@ struct MovieDetailsView: View {
         }
     }
 
-    
-    // Add Review Button
+
     private var bottomButton: some View {
-        NavigationLink {
-            AddReviewView(
-                movieID: movie.id,
-                api: api,
-                currentUserID: currentUserID
-            ) {
-                Task { await vm.refreshReviews(movieID: movie.id) }
+        Button {
+            if currentUserID != nil {
+                goToAddReview = true
+            } else {
+                showGuestAlert = true
             }
         } label: {
             HStack(spacing: 8) {
@@ -277,8 +305,8 @@ struct MovieDetailsView: View {
         .padding(.vertical, 10)
         .background(Color.black.opacity(0.9))
     }
-    
-    
+
+
     // MARK: - Helpers UI
     private func initials(from name: String) -> String {
         let parts = name.split(separator: " ")
@@ -382,6 +410,7 @@ struct MovieDetailsView: View {
         text: String,
         day: String,
         rating: Int,
+        canDelete: Bool,
         onDelete: @escaping () -> Void
     ) -> some View {
 
@@ -439,8 +468,11 @@ struct MovieDetailsView: View {
         .background(Color.white.opacity(0.07))
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .contextMenu {
-            Button(role: .destructive) { onDelete() } label: {
-                Label("Delete", systemImage: "trash")
+            /// ✅ المستخدم يحذف ريفيوهاته هو فقط
+            if canDelete {
+                Button(role: .destructive) { onDelete() } label: {
+                    Label("Delete", systemImage: "trash")
+                }
             }
         }
     }
@@ -468,13 +500,13 @@ struct AddReviewView: View {
     @State private var reviewText: String = ""
     @State private var rating: Int = 5
     @State private var showEmptyReviewAlert = false
-    
+
     init(movieID: String, api: APIServices, currentUserID: String, onDone: @escaping () -> Void) {
         self.movieID = movieID
         self.api = api
         self.currentUserID = currentUserID
         self.onDone = onDone
-        _vm = StateObject(wrappedValue: MovieDetailsViewModel(api: api, currentUserID: currentUserID))
+        _vm = StateObject(wrappedValue: MovieDetailsViewModel(api: api))
     }
 
     var body: some View {
@@ -530,6 +562,7 @@ struct AddReviewView: View {
                 .padding(.bottom, 30)
                 .frame(maxWidth: .infinity, alignment: .center)
             }
+            .scrollDismissesKeyboard(.interactively)
             .toolbar {
 
                 ToolbarItem(placement: .topBarLeading) {
@@ -553,12 +586,13 @@ struct AddReviewView: View {
                             showEmptyReviewAlert = true
                             return
                         }
-                        
+
                         Task {
                             let ok = await vm.addReview(
                                 movieID: movieID,
                                 text: trimmed,
-                                rate: rating
+                                rate: rating,
+                                userID: currentUserID
                             )
                             if ok {
                                 onDone()

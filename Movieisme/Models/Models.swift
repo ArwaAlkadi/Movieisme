@@ -18,9 +18,13 @@ struct AirtableRecord<T: Codable>: Codable, Identifiable {
     let fields: T
 }
 
+struct AirtableSingleResponse<T: Codable>: Codable {
+    let id: String
+    let createdTime: String
+    let fields: T
+}
 
 
-// MARK: - اروى
 
 /// Movies
 struct MovieFields: Codable {
@@ -152,10 +156,12 @@ struct ProfileDTO: Identifiable {
     var fields: ProfileFields
 }
 
+
+
 /// Favorites Read
 struct FavoriteFields: Codable {
     let user_id: String
-    let movie_id: [String]
+    let movie_id: [String]?
 }
 
 struct FavoriteDTO: Identifiable {
@@ -163,6 +169,25 @@ struct FavoriteDTO: Identifiable {
     let createdTime: String
     let fields: FavoriteFields
 }
+
+/// Favorites Create (POST)
+struct FavoriteCreateDTO: Encodable {
+    struct Fields: Encodable {
+        let user_id: String
+        let movie_id: [String]
+    }
+    let fields: Fields
+}
+
+/// Favorites Update (PATCH)
+struct FavoriteUpdateDTO: Encodable {
+    struct Fields: Encodable {
+        let movie_id: [String]
+    }
+    let fields: Fields
+}
+
+
 
 /// Helpers
 extension ProfileFields {

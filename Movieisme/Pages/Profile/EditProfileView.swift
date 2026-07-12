@@ -5,16 +5,22 @@
 //
 
 import SwiftUI
+import PhotosUI
+import Foundation
 
 struct EditProfileView: View {
 
     @ObservedObject var vm: ProfileViewModel
     @Binding var profile: ProfileDTO
 
+    @EnvironmentObject private var session: SessionManager
+    @EnvironmentObject private var api: APIServices
     @Environment(\.dismiss) private var dismiss
-    @State private var isEditing = false
 
+    @State private var isEditing = false
     @State private var tempProfile: ProfileFields
+
+    @State private var pickedItem: PhotosPickerItem?
 
     init(vm: ProfileViewModel, profile: Binding<ProfileDTO>) {
         self.vm = vm
@@ -26,44 +32,24 @@ struct EditProfileView: View {
         VStack(spacing: 30) {
 
             // MARK: -  Avatar
-            ZStack {
-                if let urlString = tempProfile.profile_image,
-                   let url = URL(string: urlString),
-                   !urlString.isEmpty {
-
-                    AsyncImage(url: url) { phase in
-                        switch phase {
-                        case .success(let image):
-                            image.resizable().scaledToFill()
-                        default:
-                            Image(systemName: "person.fill")
-                                .foregroundColor(.white)
-                        }
+            PhotosPicker(
+                selection: $pickedItem,
+                matching: .images,
+                photoLibrary: .shared()
+            ) {
+                avatar
+            }
+            .disabled(!isEditing)
+            .padding(.top, 20)
+            .onChange(of: pickedItem) { _, newItem in
+                guard let newItem else { return }
+                Task {
+                    if let data = try? await newItem.loadTransferable(type: Data.self),
+                       let dataURL = Self.makeAvatarDataURL(from: data) {
+                        tempProfile.profile_image = dataURL
                     }
-                    .frame(width: 80, height: 80)
-                    .clipShape(Circle())
-
-                } else {
-                    Image(systemName: "person.fill")
-                        .resizable()
-                        .padding(20)
-                        .frame(width: 80, height: 80)
-                        .background(Color.gray.opacity(0.3))
-                        .clipShape(Circle())
-                        .foregroundColor(.white)
-                }
-
-                if isEditing {
-                    Circle()
-                        .fill(Color.black.opacity(0.6))
-                        .frame(width: 80, height: 80)
-
-                    Image(systemName: "camera.fill")
-                        .foregroundColor(Color("Warning"))
-                        .font(.system(size: 20))
                 }
             }
-            .padding(.top, 20)
 
             // MARK: -  Fields
             VStack(spacing: 0) {
@@ -76,7 +62,10 @@ struct EditProfileView: View {
                     TextField("", text: Binding(
                         get: { tempProfile.firstName },
                         set: { newFirst in
-                            tempProfile.name = newFirst + " " + tempProfile.lastName
+                            let last = tempProfile.lastName
+                            tempProfile.name = last.isEmpty
+                                ? newFirst
+                                : newFirst + " " + last
                         }
                     ))
                     .foregroundColor(.white)
@@ -95,7 +84,10 @@ struct EditProfileView: View {
                     TextField("", text: Binding(
                         get: { tempProfile.lastName },
                         set: { newLast in
-                            tempProfile.name = tempProfile.firstName + " " + newLast
+                            let first = tempProfile.firstName
+                            tempProfile.name = newLast.isEmpty
+                                ? first
+                                : first + " " + newLast
                         }
                     ))
                     .foregroundColor(.white)
@@ -110,8 +102,9 @@ struct EditProfileView: View {
             Spacer()
 
             if !isEditing {
-                NavigationLink {
-                    SignInView()
+                Button {
+                    api.clearSessionData()
+                    session.signOut()
                 } label: {
                     Text("Sign Out")
                         .foregroundColor(.red)
@@ -131,10 +124,18 @@ struct EditProfileView: View {
         .toolbar {
 
             ToolbarItem(placement: .navigationBarLeading) {
-                Button { dismiss() } label: {
+                Button {
+                    if isEditing {
+                        /// إلغاء التعديل: نرجع القيم الأصلية
+                        tempProfile = profile.fields
+                        isEditing = false
+                    } else {
+                        dismiss()
+                    }
+                } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "chevron.left")
-                        Text("Back")
+                        Text(isEditing ? "Cancel" : "Back")
                     }
                     .foregroundColor(Color("Warning"))
                 }
@@ -167,6 +168,67 @@ struct EditProfileView: View {
             Text(vm.errorMessage ?? "")
         }
     }
+
+
+    // MARK: - Avatar View
+    private var avatar: some View {
+        ZStack {
+            if let urlString = tempProfile.profile_image,
+               let url = URL(string: urlString),
+               !urlString.isEmpty {
+
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image.resizable().scaledToFill()
+                    default:
+                        Image(systemName: "person.fill")
+                            .foregroundColor(.white)
+                    }
+                }
+                .frame(width: 80, height: 80)
+                .clipShape(Circle())
+
+            } else {
+                Image(systemName: "person.fill")
+                    .resizable()
+                    .padding(20)
+                    .frame(width: 80, height: 80)
+                    .background(Color.gray.opacity(0.3))
+                    .clipShape(Circle())
+                    .foregroundColor(.white)
+            }
+
+            if isEditing {
+                Circle()
+                    .fill(Color.black.opacity(0.6))
+                    .frame(width: 80, height: 80)
+
+                Image(systemName: "camera.fill")
+                    .foregroundColor(Color("Warning"))
+                    .font(.system(size: 20))
+            }
+        }
+    }
+
+
+    
+    private static func makeAvatarDataURL(from data: Data) -> String? {
+        guard let ui = UIImage(data: data) else { return nil }
+
+        let target: CGFloat = 300
+        let scale = min(target / ui.size.width, target / ui.size.height, 1)
+        let newSize = CGSize(
+            width: ui.size.width * scale,
+            height: ui.size.height * scale
+        )
+
+        let renderer = UIGraphicsImageRenderer(size: newSize)
+        let resized = renderer.image { _ in
+            ui.draw(in: CGRect(origin: .zero, size: newSize))
+        }
+
+        guard let jpeg = resized.jpegData(compressionQuality: 0.5) else { return nil }
+        return "data:image/jpeg;base64," + jpeg.base64EncodedString()
+    }
 }
-
-

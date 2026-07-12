@@ -8,58 +8,37 @@ import SwiftUI
 
 struct SignInView: View {
 
-    
-    @StateObject private var api = APIServices()
+    @EnvironmentObject private var session: SessionManager
+
+    @ObservedObject var api: APIServices
     @StateObject private var viewModel: SignInViewModel
 
-    @State private var loggedUserID: String = ""
-
-    init() {
-        let api = APIServices()
-        _api = StateObject(wrappedValue: api)
+    init(api: APIServices) {
+        self.api = api
         _viewModel = StateObject(wrappedValue: SignInViewModel(api: api))
     }
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                Image("SignInBG")
-                    .resizable()
-                    .ignoresSafeArea()
+        ZStack {
 
-                LinearGradient(
-                    gradient: Gradient(stops: [
-                        .init(color: .clear, location: 0.0),
-                        .init(color: Color.black.opacity(0.15), location: 0.33),
-                        .init(color: Color.black.opacity(0.5), location: 0.45),
-                        .init(color: Color.black.opacity(0.7), location: 0.55),
-                        .init(color: Color.black.opacity(0.85), location: 0.70),
-                        .init(color: Color.black.opacity(0.95), location: 0.85),
-                        .init(color: .black, location: 0.95),
-                        .init(color: .black, location: 1.0)
-                    ]),
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
+            background
                 .ignoresSafeArea()
+                .ignoresSafeArea(.keyboard)
 
+            ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 30) {
 
                     Spacer()
-                        .frame(height: 350)
+                        .frame(height: 330)
 
-                    VStack(alignment: .leading, spacing: 10 ) {
+                    VStack(alignment: .leading, spacing: 10) {
                         Text("Sign in")
                             .font(.system(size: 40, weight: .bold))
                             .foregroundColor(.white)
-                            
 
                         Text("You'll find what you're looking for in the ocean of movies")
                             .font(.system(size: 16))
                             .foregroundColor(.white)
-                            
-                            
-                           
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 15)
@@ -81,7 +60,7 @@ struct SignInView: View {
                     }
                     .padding(.horizontal, 15)
 
-                    // Password Field
+                    // MARK: - Password Field
                     VStack(alignment: .leading, spacing: 5) {
                         Text("Password")
                             .foregroundColor(.white)
@@ -100,14 +79,12 @@ struct SignInView: View {
                     }
                     .padding(.horizontal, 15)
 
-                    
+
                     // MARK: -  Sign In Button
                     Button(action: {
                         viewModel.signIn { userID in
-                            loggedUserID = userID
-                            viewModel.loginSuccess = true
+                            session.signIn(userID: userID)
                         }
-                        
                     }) {
                         ZStack {
                             Text("Sign in")
@@ -128,24 +105,59 @@ struct SignInView: View {
                     .disabled(!viewModel.isSignInButtonEnabled)
                     .padding(.horizontal, 15)
 
-                    Spacer()
+                    // MARK: - ✅ زر الدخول كضيف
+                    Button {
+                        session.continueAsGuest()
+                    } label: {
+                        Text("Continue as Guest")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(Color("MainColor1"))
+                            .frame(width: 358, height: 44)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .stroke(Color("MainColor1"), lineWidth: 1.2)
+                            )
+                    }
+                    .padding(.horizontal, 15)
+                    .padding(.top, -10)
+
+                    Spacer(minLength: 40)
                 }
             }
-            .task {
-                await viewModel.fetchProfiles()
-            }
-            .alert("Error", isPresented: $viewModel.showErrorAlert) {
-                Button("OK", role: .cancel) {
-                    viewModel.showErrorAlert = false
-                }
-            } message: {
-                Text(viewModel.errorMessage ?? "Unknown error")
-            }
-            .navigationDestination(isPresented: $viewModel.loginSuccess) {
-                MoviesCenterView(api: api, currentUserID: loggedUserID)
-            }
+            .scrollDismissesKeyboard(.interactively)
         }
-        .navigationBarBackButtonHidden()
+        .task {
+            await viewModel.fetchProfiles()
+        }
+        .alert("Error", isPresented: $viewModel.showErrorAlert) {
+            Button("OK", role: .cancel) {
+                viewModel.showErrorAlert = false
+            }
+        } message: {
+            Text(viewModel.errorMessage ?? "Unknown error")
+        }
+    }
+
+    private var background: some View {
+        ZStack {
+            Image("SignInBG")
+                .resizable()
+
+            LinearGradient(
+                gradient: Gradient(stops: [
+                    .init(color: .clear, location: 0.0),
+                    .init(color: Color.black.opacity(0.15), location: 0.33),
+                    .init(color: Color.black.opacity(0.5), location: 0.45),
+                    .init(color: Color.black.opacity(0.7), location: 0.55),
+                    .init(color: Color.black.opacity(0.85), location: 0.70),
+                    .init(color: Color.black.opacity(0.95), location: 0.85),
+                    .init(color: .black, location: 0.95),
+                    .init(color: .black, location: 1.0)
+                ]),
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        }
     }
 }
 
@@ -154,16 +166,16 @@ struct SignInView: View {
 
 
 struct CustomTextField: View {
-    
+
     var placeholder: String
     @Binding var text: String
     var isSecure: Bool = false
     @Binding var isPasswordVisible: Bool
     var onToggleVisibility: (() -> Void)?
     @Binding var hasError: Bool
-    
+
     @FocusState private var isFocused: Bool
-    
+
     var body: some View {
         HStack {
             ZStack(alignment: .leading) {
@@ -171,7 +183,7 @@ struct CustomTextField: View {
                     Text(placeholder)
                         .foregroundColor(Color(red: 0.7, green: 0.7, blue: 0.7))
                 }
-                
+
                 Group {
                     if isSecure && !isPasswordVisible {
                         SecureField("", text: $text)
@@ -185,7 +197,7 @@ struct CustomTextField: View {
                 .autocapitalization(.none)
                 .accentColor(Color("MainColor1"))
             }
-            
+
             if isSecure {
                 Button(action: {
                     onToggleVisibility?()
@@ -203,10 +215,9 @@ struct CustomTextField: View {
         .overlay(
             RoundedRectangle(cornerRadius: 10)
                 .stroke(borderColor, lineWidth: 2)
-                
         )
     }
-    
+
     private var borderColor: Color {
         if hasError {
             return Color("Error")
@@ -223,5 +234,6 @@ struct CustomTextField: View {
 
 
 #Preview {
-    SignInView()
+    SignInView(api: APIServices())
+        .environmentObject(SessionManager())
 }

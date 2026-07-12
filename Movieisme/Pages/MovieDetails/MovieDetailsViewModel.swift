@@ -15,11 +15,9 @@ final class MovieDetailsViewModel: ObservableObject {
     @Published var errorMessage: String?
 
     private let api: APIServices
-    private let currentUserID: String
 
-    init(api: APIServices, currentUserID: String) {
+    init(api: APIServices) {
         self.api = api
-        self.currentUserID = currentUserID
     }
 
     func load(movieID: String) async {
@@ -49,16 +47,17 @@ final class MovieDetailsViewModel: ObservableObject {
         }
     }
 
-    func addReview(movieID: String, text: String, rate: Int) async -> Bool {
+    /// ✅ الـ userID صار يُمرّر عند الاستدعاء (من الجلسة) بدل تخزينه
+    func addReview(movieID: String, text: String, rate: Int, userID: String) async -> Bool {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return false }
+        guard !trimmed.isEmpty, !userID.isEmpty else { return false }
 
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
 
         do {
-            try await api.createReview(movieID: movieID, text: trimmed, rate: rate, userID: currentUserID)
+            try await api.createReview(movieID: movieID, text: trimmed, rate: rate, userID: userID)
             return true
         } catch {
             errorMessage = error.localizedDescription
