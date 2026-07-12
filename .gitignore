@@ -2,3 +2,7 @@ Secrets.plist
 
 # Local secrets
 Movieisme/Core/Secrets.plist
+
+# Xcode user data
+xcuserdata/
+*.xcuserstate
