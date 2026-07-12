@@ -14,7 +14,7 @@ final class APIServices: ObservableObject {
     // ========================================
     // MARK: - Published Properties
     // ========================================
-    
+
     @Published var movies: [MovieDTO] = []
     @Published var profiles: [ProfileDTO] = []
     @Published var reviewsByMovieID: [String: [ReviewDTO]] = [:]
@@ -23,21 +23,29 @@ final class APIServices: ObservableObject {
     @Published var usersByID: [String: UserDTO] = [:]
     @Published var errorMessage: String?
 
-    
-    
+    @Published var favoriteMovieIDs: Set<String> = []
+
+    private var favoriteRecordID: String?
+
+
+
     // ========================================
     // MARK: - API Configuration
     // ========================================
-    
-    private let baseURL = "https://api.airtable.com/v0/appsfcB6YESLj4NCN"
-    private let token   = "Bearer patHXtgI1qrXTZwz3.a455bfcc1a171662a512c7890954a8f4335f00601ea5d14d425baa3baa2d53c0"
 
-    
-    
+    private var baseURL: String {
+        "https://api.airtable.com/v0/\(Secrets.airtableBaseID)"
+    }
+    private var token: String {
+        "Bearer \(Secrets.airtableToken)"
+    }
+
+
+
     // ========================================
     // MARK: - Network: Request Builder
     // ========================================
-    
+
     /// Builds URLRequest with headers and optional body
     private func request(
         _ path: String,
@@ -62,12 +70,12 @@ final class APIServices: ObservableObject {
         return req
     }
 
-    
-    
+
+
     // ========================================
     // MARK: - Network: Response Validation
     // ========================================
-    
+
     private struct AirtableErrorResponse: Decodable {
         struct Err: Decodable {
             let type: String
@@ -111,12 +119,12 @@ final class APIServices: ObservableObject {
         }
     }
 
-    
-    
+
+
     // ========================================
     // MARK: - Network: Movies
     // ========================================
-    
+
     /// Fetches all movies from Airtable
     func fetchMovies() async throws {
         errorMessage = nil
@@ -142,12 +150,12 @@ final class APIServices: ObservableObject {
         }
     }
 
-    
-    
+
+
     // ========================================
     // MARK: - Network: Profiles
     // ========================================
-    
+
     /// Fetches all user profiles from Airtable
     func fetchProfiles() async throws {
         errorMessage = nil
@@ -226,19 +234,29 @@ final class APIServices: ObservableObject {
             try validateWithBody(resp, data: data)
 
             updateProfileLocal(profile)
+
+            if usersByID[profile.id] != nil {
+                usersByID[profile.id] = UserDTO(
+                    id: profile.id,
+                    createdTime: profile.createdTime,
+                    fields: .init(
+                        name: profile.fields.name,
+                        profile_image: profile.fields.profile_image
+                    )
+                )
+            }
         } catch {
             errorMessage = error.localizedDescription
             throw error
         }
     }
 
-    
-    
+
+
     // ========================================
     // MARK: - Network: Reviews
     // ========================================
-    
-    /// Fetches all reviews for a specific movie
+
     func fetchReviews(movieID: String) async throws {
         errorMessage = nil
 
@@ -253,13 +271,15 @@ final class APIServices: ObservableObject {
             let decoded = try JSONDecoder()
                 .decode(AirtableListResponse<ReviewFields>.self, from: data)
 
-            reviewsByMovieID[movieID] = decoded.records.map {
-                ReviewDTO(
-                    id: $0.id,
-                    createdTime: $0.createdTime,
-                    fields: $0.fields
-                )
-            }
+            reviewsByMovieID[movieID] = decoded.records
+                .map {
+                    ReviewDTO(
+                        id: $0.id,
+                        createdTime: $0.createdTime,
+                        fields: $0.fields
+                    )
+                }
+                .sorted { $0.createdTime > $1.createdTime }
 
             try await fetchUsersIfNeeded()
         } catch {
@@ -321,12 +341,96 @@ final class APIServices: ObservableObject {
         }
     }
 
-    
-    
+
+
+    // ========================================
+    // MARK: - Network: Favorite
+    // ========================================
+
+    func fetchFavorites(userID: String) async throws {
+        errorMessage = nil
+
+        do {
+            let formula = "{user_id}='\(userID)'"
+            let path = "favorites?filterByFormula=\(enc(formula))"
+
+            let req = try request(path)
+            let (data, resp) = try await URLSession.shared.data(for: req)
+            try validateWithBody(resp, data: data)
+
+            let decoded = try JSONDecoder()
+                .decode(AirtableListResponse<FavoriteFields>.self, from: data)
+
+            if let record = decoded.records.first {
+                favoriteRecordID = record.id
+                favoriteMovieIDs = Set(record.fields.movie_id ?? [])
+            } else {
+                favoriteRecordID = nil
+                favoriteMovieIDs = []
+            }
+        } catch {
+            errorMessage = error.localizedDescription
+            throw error
+        }
+    }
+
+    func toggleFavorite(movieID: String, userID: String) async throws {
+        errorMessage = nil
+
+        var newIDs = favoriteMovieIDs
+        if newIDs.contains(movieID) {
+            newIDs.remove(movieID)
+        } else {
+            newIDs.insert(movieID)
+        }
+        let oldIDs = favoriteMovieIDs
+        favoriteMovieIDs = newIDs
+
+        do {
+            if let recordID = favoriteRecordID {
+                let dto = FavoriteUpdateDTO(fields: .init(movie_id: Array(newIDs)))
+                let body = try JSONEncoder().encode(dto)
+                let req = try request("favorites/\(recordID)", method: "PATCH", body: body)
+
+                let (data, resp) = try await URLSession.shared.data(for: req)
+                try validateWithBody(resp, data: data)
+
+            } else {
+                let dto = FavoriteCreateDTO(
+                    fields: .init(user_id: userID, movie_id: Array(newIDs))
+                )
+                let body = try JSONEncoder().encode(dto)
+                let req = try request("favorites", method: "POST", body: body)
+
+                let (data, resp) = try await URLSession.shared.data(for: req)
+                try validateWithBody(resp, data: data)
+
+                let created = try JSONDecoder()
+                    .decode(AirtableSingleResponse<FavoriteFields>.self, from: data)
+                favoriteRecordID = created.id
+            }
+        } catch {
+            favoriteMovieIDs = oldIDs
+            errorMessage = error.localizedDescription
+            throw error
+        }
+    }
+
+    func isFavorite(_ movieID: String) -> Bool {
+        favoriteMovieIDs.contains(movieID)
+    }
+
+    func clearSessionData() {
+        favoriteMovieIDs = []
+        favoriteRecordID = nil
+    }
+
+
+
     // ========================================
     // MARK: - Network: Actors
     // ========================================
-    
+
     /// Fetches all actors for a specific movie
     func fetchActors(movieID: String) async throws {
         errorMessage = nil
@@ -378,12 +482,12 @@ final class APIServices: ObservableObject {
         }
     }
 
-    
-    
+
+
     // ========================================
     // MARK: - Network: Directors
     // ========================================
-    
+
     /// Fetches all directors for a specific movie
     func fetchDirectors(movieID: String) async throws {
         errorMessage = nil
@@ -440,12 +544,12 @@ final class APIServices: ObservableObject {
         }
     }
 
-    
-    
+
+
     // ========================================
     // MARK: - Helpers: Local Operations (No Network)
     // ========================================
-    
+
     /// Returns profile by ID from local cache
     func getProfile(by id: String) -> ProfileDTO? {
         profiles.first { $0.id == id }
