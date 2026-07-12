@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		ECEB0C5E3003EA9D00B6B413 /* Secrets.plist in Resources */ = {isa = PBXBuildFile; fileRef = ECEB0C463003EA9D00B6B413 /* Secrets.plist */; };
 		ECEB0C5F3003EA9D00B6B413 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = ECEB0C5C3003EA9D00B6B413 /* Assets.xcassets */; };
 		ECEB0C603003EA9D00B6B413 /* MoviesApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECEB0C433003EA9D00B6B413 /* MoviesApp.swift */; };
 		ECEB0C613003EA9D00B6B413 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECEB0C443003EA9D00B6B413 /* RootView.swift */; };
@@ -24,12 +23,12 @@
 		ECEB0C6C3003EA9D00B6B413 /* ProfileViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECEB0C563003EA9D00B6B413 /* ProfileViewModel.swift */; };
 		ECEB0C6D3003EA9D00B6B413 /* SignInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECEB0C583003EA9D00B6B413 /* SignInView.swift */; };
 		ECEB0C6E3003EA9D00B6B413 /* SignInViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECEB0C593003EA9D00B6B413 /* SignInViewModel.swift */; };
+		ECEB0C7030041ED200B6B413 /* Secrets.plist in Resources */ = {isa = PBXBuildFile; fileRef = ECEB0C6F30041ED200B6B413 /* Secrets.plist */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		ECEB0C433003EA9D00B6B413 /* MoviesApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoviesApp.swift; sourceTree = "<group>"; };
 		ECEB0C443003EA9D00B6B413 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
-		ECEB0C463003EA9D00B6B413 /* Secrets.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Secrets.plist; sourceTree = "<group>"; };
 		ECEB0C473003EA9D00B6B413 /* Secrets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Secrets.swift; sourceTree = "<group>"; };
 		ECEB0C483003EA9D00B6B413 /* SessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionManager.swift; sourceTree = "<group>"; };
 		ECEB0C4A3003EA9D00B6B413 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
@@ -44,6 +43,7 @@
 		ECEB0C583003EA9D00B6B413 /* SignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInView.swift; sourceTree = "<group>"; };
 		ECEB0C593003EA9D00B6B413 /* SignInViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInViewModel.swift; sourceTree = "<group>"; };
 		ECEB0C5C3003EA9D00B6B413 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		ECEB0C6F30041ED200B6B413 /* Secrets.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Secrets.plist; sourceTree = "<group>"; };
 		ECF38B5F2EFC27D300664696 /* Movieisme.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Movieisme.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -70,9 +70,9 @@
 		ECEB0C493003EA9D00B6B413 /* Core */ = {
 			isa = PBXGroup;
 			children = (
-				ECEB0C463003EA9D00B6B413 /* Secrets.plist */,
 				ECEB0C473003EA9D00B6B413 /* Secrets.swift */,
 				ECEB0C483003EA9D00B6B413 /* SessionManager.swift */,
+				ECEB0C6F30041ED200B6B413 /* Secrets.plist */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -231,7 +231,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				ECEB0C5E3003EA9D00B6B413 /* Secrets.plist in Resources */,
+				ECEB0C7030041ED200B6B413 /* Secrets.plist in Resources */,
 				ECEB0C5F3003EA9D00B6B413 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
