@@ -1,42 +1,43 @@
-# MoviesApp
+# Movieisme
 
-## Overview
-MoviesApp is an iOS application built using SwiftUI that allows users to explore movies, view detailed information, and interact with movie-related content such as reviews and user profiles.  
-The application integrates with the Airtable REST API and follows a clean and structured architecture.
+**Explore movies. Share what you think.**
 
-## CRUD Operations & API Integration
-The application implements full CRUD operations using the provided Airtable API.  
-All network requests and data handling are centralized in the `APIServices` class to ensure consistency and maintainability.
+Movieisme is a SwiftUI iOS app for browsing movies, viewing their details, and reading and writing reviews — backed entirely by the **Airtable REST API** with full CRUD support and a clean MVVM structure.
 
-### Create
-Users can create new movie reviews.  
-This functionality is implemented using a POST request to the `reviews` endpoint.
+<br>
+<img width="1441" height="802" alt="Screenshot 2026-07-09 at 4 45 45 AM" src="https://github.com/user-attachments/assets/4981449d-d17e-4b56-9a28-13b9dcb5c925" />
+<br>
 
-### Read
-The application retrieves data from multiple endpoints:
-- Movies are fetched from the `movies` table.
-- Reviews are fetched dynamically based on the selected movie.
-- Actors and directors are retrieved using link tables.
-- User profiles are fetched from the `users` table.
+## Features
 
-Fetched data is displayed dynamically in the user interface based on the selected content.
+- **Movie catalog** — browse movies with posters, story, runtime, genre, language, and IMDb rating
+- **Search & genre filtering** — find movies by name or browse by genre section
+- **Movie details** — cast and directors resolved dynamically through Airtable link tables
+- **Reviews** — read reviews per movie, write your own with a rating, and delete your own reviews
+- **User profiles** — sign in with email/password validation, view and edit your profile (name and photo)
 
-### Update
-Users can update their profile information, such as their name and profile image.  
-This is implemented using a PATCH request to the `users/{id}` endpoint.
+## CRUD Over Airtable
 
-### Delete
-Users can delete their own reviews.  
-This is implemented using a DELETE request to the `reviews/{reviewID}` endpoint.
+All networking is centralized in a single `APIServices` layer with a generic request builder, response validation, and typed DTOs decoded from Airtable's record format:
 
-## Architecture & Design
-The application follows the MVVM (Model–View–ViewModel) architecture:
-- Views handle the presentation layer and user interaction.
-- ViewModels manage application logic and state.
-- APIServices is responsible for API communication and data processing.
+| Operation | Endpoint | Used for |
+|---|---|---|
+| **Create** | `POST /reviews` | Publishing a new movie review |
+| **Read** | `GET /movies`, `/reviews`, `/actors`, `/directors`, `/users` | Catalog, per-movie reviews, cast via link tables, profiles |
+| **Update** | `PATCH /users/{id}` | Editing profile name and image |
+| **Delete** | `DELETE /reviews/{id}` | Removing the user's own review |
 
-SwiftUI is used to build the user interface, and asynchronous tasks are used to handle network requests efficiently.
+Reviews, actors, and directors are fetched on demand for the selected movie rather than up front, and profile edits are applied locally as well so the UI updates instantly.
 
-## Conclusion
-MoviesApp demonstrates the integration of SwiftUI with a RESTful API while supporting full CRUD functionality.  
-The application provides a structured and maintainable codebase suitable for future enhancements and scalability.
+## Architecture
+
+MVVM with one shared networking service.
+
+
+## Tech Stack
+
+- Swift · SwiftUI
+- Airtable REST API (async/await networking with `URLSession`)
+- MVVM architecture
+
+> Built as a learning project — it uses a demo Airtable base with an embedded token for easy setup; a production app would keep credentials out of source control.
