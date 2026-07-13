@@ -7,6 +7,8 @@ Movieisme is a movie discovery and review iOS app that allows users to browse mo
 <br>
 <img width="1441" alt="Movieisme" src="https://github.com/user-attachments/assets/4981449d-d17e-4b56-9a28-13b9dcb5c925" />
 <br>
+<br>
+
 
 ## Features
 
@@ -16,8 +18,8 @@ Movieisme is a movie discovery and review iOS app that allows users to browse mo
 - **Reviews** — read reviews, publish your own with a rating, and delete your own reviews.
 - **Favorites** — save and remove favorite movies with synchronized user data.
 - **User Profiles** — sign in, manage your profile information, and update your profile image.
+<br>
 
----
 
 ## Technical Overview
 
@@ -33,35 +35,9 @@ The networking layer includes:
 - Session-aware state management
 - Optimistic UI updates
 - Typed DTO decoding
+<br>
 
----
 
-## Project Structure
-
-```text
-App
-├── App
-├── Core
-├── Models
-├── Networking
-├── Pages
-│   ├── SignIn
-│   │   ├── View
-│   │   └── ViewModel
-│   ├── MoviesCenter
-│   │   ├── View
-│   │   └── ViewModel
-│   ├── MovieDetails
-│   │   ├── View
-│   │   └── ViewModel
-│   └── Profile
-│       ├── ProfileView
-│       ├── EditProfileView
-│       └── ViewModel
-└── Assets
-```
-
----
 
 ## CRUD Operations
 
@@ -76,7 +52,9 @@ All API communication is centralized inside a reusable `APIServices` layer.
 
 Movies are loaded once, while reviews, actors, directors, and favorites are fetched dynamically as needed to reduce unnecessary network traffic.
 
----
+<br>
+
+
 
 ## Architecture
 
@@ -86,8 +64,9 @@ MVVM with a centralized networking layer.
 - **MovieDetailsViewModel** — handles movie details, reviews, and user interactions.
 - **SessionManager** — manages authentication state and user session.
 - **DTO Models** — strongly typed models for decoding Airtable responses.
+<br>
 
----
+
 
 ## Tech Stack
 
@@ -100,8 +79,9 @@ MVVM with a centralized networking layer.
 | **Data** | JSON Encoding & Decoding |
 | **State Management** | ObservableObject · @Published |
 | **Version Control** | Git · GitHub |
+<br>
 
----
+
 
 ## Setup
 
